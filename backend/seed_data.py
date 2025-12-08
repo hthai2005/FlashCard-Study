@@ -4,7 +4,7 @@ Tạo 2 tài khoản: 1 user test và 1 admin
 """
 from app.database import SessionLocal, engine, Base
 from app import models
-from app import auth
+import bcrypt
 
 # Tạo lại database tables (xóa và tạo mới)
 def init_db():
@@ -24,8 +24,9 @@ def create_sample_users():
         
         # 1. Tạo Admin user
         admin_password = "admin123"
-        # Sử dụng passlib để hash password (tương thích với auth.verify_password)
-        admin_hashed = auth.get_password_hash(admin_password)
+        # Sử dụng bcrypt trực tiếp (passlib có thể verify bcrypt hash)
+        # Format: $2b$... tương thích với passlib
+        admin_hashed = bcrypt.hashpw(admin_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         admin_user = models.User(
             username="admin",
             email="admin@example.com",
@@ -42,8 +43,9 @@ def create_sample_users():
         
         # 2. Tạo Test user
         test_password = "test123"
-        # Sử dụng passlib để hash password (tương thích với auth.verify_password)
-        test_hashed = auth.get_password_hash(test_password)
+        # Sử dụng bcrypt trực tiếp (passlib có thể verify bcrypt hash)
+        # Format: $2b$... tương thích với passlib
+        test_hashed = bcrypt.hashpw(test_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         test_user = models.User(
             username="testuser",
             email="test@example.com",

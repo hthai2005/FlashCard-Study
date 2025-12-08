@@ -1,7 +1,7 @@
 fastapi>=0.115.0  # Nâng cấp để tương thích với Pydantic 2.9+
 uvicorn[standard]>=0.30.0  # Nâng cấp để tương thích với FastAPI mới
 sqlalchemy>=2.0.36  # Nâng cấp để tương thích Python 3.14
-# psycopg2-binary==2.9.9  # Chỉ cần khi dùng PostgreSQL, không cần cho SQLite
+psycopg2-binary>=2.9.9  # Driver PostgreSQL
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
