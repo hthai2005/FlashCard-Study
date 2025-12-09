@@ -19,7 +19,7 @@ def create_sample_users():
         existing_users = db.query(models.User).count()
         if existing_users > 0:
             print("⚠️  Đã có dữ liệu trong database. Bỏ qua việc tạo dữ liệu mẫu.")
-            print("   Nếu muốn tạo lại, hãy xóa file flashcard_app.db và chạy lại script này.")
+            print("   Nếu muốn tạo lại, hãy chạy lại script này và chọn 'yes'.")
             return
         
         # 1. Tạo Admin user
