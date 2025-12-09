@@ -26,10 +26,32 @@ def get_users(
     users = db.query(models.User).offset(skip).limit(limit).all()
     total = db.query(models.User).count()
     
+    # Get last active date for each user from study_sessions
+    from sqlalchemy import func
+    from app.models import StudySession
+    
+    users_with_activity = []
+    for user in users:
+        # Get most recent study session
+        last_session = db.query(StudySession).filter(
+            StudySession.user_id == user.id
+        ).order_by(StudySession.started_at.desc()).first()
+        
+        user_dict = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "is_active": user.is_active,
+            "is_admin": user.is_admin,
+            "created_at": user.created_at,
+            "last_active": last_session.started_at if last_session else None
+        }
+        users_with_activity.append(user_dict)
+    
     return {
-        "users": users,
+        "users": users_with_activity,
         "total": total,
-        "count": len(users)
+        "count": len(users_with_activity)
     }
 
 @router.get("/users/{user_id}", response_model=schemas.UserResponse)

@@ -14,6 +14,8 @@ export default function UserManagement() {
   const [selectedUsers, setSelectedUsers] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [totalUsers, setTotalUsers] = useState(0)
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false)
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const usersPerPage = 5
 
   useEffect(() => {
@@ -22,78 +24,83 @@ export default function UserManagement() {
     }
   }, [user, authLoading, currentPage])
 
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.filter-dropdown')) {
+        setShowRoleDropdown(false)
+        setShowStatusDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, roleFilter, statusFilter])
+
   const fetchUsers = async () => {
     try {
-      // Fetch users from API (this endpoint may need to be created)
-      const response = await api.get('/api/admin/users').catch(() => ({
-        data: {
-          users: [],
-          total: 0
-        }
-      }))
+      setLoading(true)
+      const response = await api.get('/api/admin/users').catch((err) => {
+        console.error('Error fetching users:', err)
+        return { data: { users: [], total: 0 } }
+      })
 
-      if (response.data.users) {
-        setUsers(response.data.users)
-        setTotalUsers(response.data.total || response.data.users.length)
-      } else {
-        // Mock data for demonstration
-        const mockUsers = [
-          {
-            id: 1,
-            username: 'olivia.m',
-            email: 'olivia.m@example.com',
-            full_name: 'Olivia Martin',
-            role: 'Admin',
-            date_joined: '2023-10-26',
-            last_active: '2024-05-22',
-            status: 'Active'
-          },
-          {
-            id: 2,
-            username: 'ben.carter',
-            email: 'ben.carter@example.com',
-            full_name: 'Benjamin Carter',
-            role: 'User',
-            date_joined: '2023-10-25',
-            last_active: '2024-05-21',
-            status: 'Active'
-          },
-          {
-            id: 3,
-            username: 'sophia.r',
-            email: 'sophia.r@example.com',
-            full_name: 'Sophia Rodriguez',
-            role: 'User',
-            date_joined: '2023-10-24',
-            last_active: '2024-05-20',
-            status: 'Suspended'
-          },
-          {
-            id: 4,
-            username: 'liam.g',
-            email: 'liam.g@example.com',
-            full_name: 'Liam Goldberg',
-            role: 'User',
-            date_joined: '2023-10-23',
-            last_active: '2024-05-19',
-            status: 'Active'
-          },
-          {
-            id: 5,
-            username: 'ava.n',
-            email: 'ava.n@example.com',
-            full_name: 'Ava Nguyen',
-            role: 'Admin',
-            date_joined: '2023-10-22',
-            last_active: '2024-05-18',
-            status: 'Active'
+      if (response.data && response.data.users) {
+        // Map API data to frontend format
+        const mappedUsers = response.data.users.map((user) => {
+          // Format date
+          const dateJoined = user.created_at 
+            ? new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+            : 'N/A'
+          
+          // Format last active date
+          let lastActive = 'Never'
+          if (user.last_active) {
+            const lastActiveDate = new Date(user.last_active)
+            const now = new Date()
+            const diffTime = Math.abs(now - lastActiveDate)
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+            
+            if (diffDays === 0) {
+              lastActive = 'Today'
+            } else if (diffDays === 1) {
+              lastActive = 'Yesterday'
+            } else if (diffDays < 7) {
+              lastActive = `${diffDays} days ago`
+            } else {
+              lastActive = lastActiveDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+            }
           }
-        ]
-        setUsers(mockUsers)
-        setTotalUsers(mockUsers.length)
+          
+          return {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            full_name: user.username, // Use username as full_name if not available
+            role: user.is_admin ? 'Admin' : 'User',
+            date_joined: dateJoined,
+            last_active: lastActive,
+            status: user.is_active ? 'Active' : 'Suspended',
+            is_admin: user.is_admin,
+            is_active: user.is_active
+          }
+        })
+        
+        setUsers(mappedUsers)
+        setTotalUsers(response.data.total || mappedUsers.length)
+      } else {
+        setUsers([])
+        setTotalUsers(0)
       }
     } catch (error) {
+      console.error('Failed to load users:', error)
       toast.error('Failed to load users')
+      setUsers([])
+      setTotalUsers(0)
     } finally {
       setLoading(false)
     }
@@ -101,7 +108,7 @@ export default function UserManagement() {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedUsers(users.map(u => u.id))
+      setSelectedUsers(filteredUsers.map(u => u.id))
     } else {
       setSelectedUsers([])
     }
@@ -203,26 +210,83 @@ export default function UserManagement() {
             </div>
 
             {/* Chips */}
-            <div className="flex gap-3 flex-wrap">
-              <button
-                onClick={() => toast.info('Role filter coming soon!')}
-                className="flex h-12 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-4 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <p className="text-gray-900 dark:text-white text-sm font-medium leading-normal">Role: {roleFilter}</p>
-                <span className="material-symbols-outlined text-gray-600 dark:text-gray-400">arrow_drop_down</span>
-              </button>
-              <button
-                onClick={() => toast.info('Status filter coming soon!')}
-                className="flex h-12 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-4 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <p className="text-gray-900 dark:text-white text-sm font-medium leading-normal">Status: {statusFilter}</p>
-                <span className="material-symbols-outlined text-gray-600 dark:text-gray-400">arrow_drop_down</span>
-              </button>
+            <div className="flex gap-3 flex-wrap relative">
+              {/* Role Filter Dropdown */}
+              <div className="relative filter-dropdown">
+                <button
+                  onClick={() => {
+                    setShowRoleDropdown(!showRoleDropdown)
+                    setShowStatusDropdown(false)
+                  }}
+                  className="flex h-12 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-4 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <p className="text-gray-900 dark:text-white text-sm font-medium leading-normal">Role: {roleFilter}</p>
+                  <span className="material-symbols-outlined text-gray-600 dark:text-gray-400">arrow_drop_down</span>
+                </button>
+                {showRoleDropdown && (
+                  <div className="absolute top-full left-0 mt-1 z-10 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+                    {['All', 'Admin', 'User'].map((role) => (
+                      <button
+                        key={role}
+                        onClick={() => {
+                          setRoleFilter(role)
+                          setShowRoleDropdown(false)
+                          setCurrentPage(1)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                          roleFilter === role
+                            ? 'bg-primary/10 text-primary font-medium'
+                            : 'text-gray-900 dark:text-white'
+                        }`}
+                      >
+                        {role}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Status Filter Dropdown */}
+              <div className="relative filter-dropdown">
+                <button
+                  onClick={() => {
+                    setShowStatusDropdown(!showStatusDropdown)
+                    setShowRoleDropdown(false)
+                  }}
+                  className="flex h-12 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-4 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <p className="text-gray-900 dark:text-white text-sm font-medium leading-normal">Status: {statusFilter}</p>
+                  <span className="material-symbols-outlined text-gray-600 dark:text-gray-400">arrow_drop_down</span>
+                </button>
+                {showStatusDropdown && (
+                  <div className="absolute top-full left-0 mt-1 z-10 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+                    {['All', 'Active', 'Suspended'].map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => {
+                          setStatusFilter(status)
+                          setShowStatusDropdown(false)
+                          setCurrentPage(1)
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                          statusFilter === status
+                            ? 'bg-primary/10 text-primary font-medium'
+                            : 'text-gray-900 dark:text-white'
+                        }`}
+                      >
+                        {status}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <button
                 onClick={() => {
                   setSearchQuery('')
                   setRoleFilter('All')
                   setStatusFilter('All')
+                  setCurrentPage(1)
                 }}
                 className="flex h-12 shrink-0 items-center justify-center gap-x-2 rounded-lg border border-gray-300 dark:border-gray-600 px-4 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
               >

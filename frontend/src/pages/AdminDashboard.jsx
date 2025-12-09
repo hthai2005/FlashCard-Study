@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import toast from 'react-hot-toast'
@@ -6,6 +7,7 @@ import AdminSidebar from '../components/AdminSidebar'
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -205,26 +207,21 @@ export default function AdminDashboard() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h3>
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={() => {
-                    setActiveTab('users')
-                    toast.info('User Management coming soon!')
-                  }}
+                  onClick={() => navigate('/admin/users')}
                   className="w-full flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
                 >
                   <span className="material-symbols-outlined text-base">group</span>
                   Manage Users
                 </button>
                 <button
-                  onClick={() => navigate('/sets')}
+                  onClick={() => navigate('/admin/sets')}
                   className="w-full flex items-center justify-center gap-2 rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2 text-sm font-semibold text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   <span className="material-symbols-outlined text-base">style</span>
                   View All Sets
                 </button>
                 <button
-                  onClick={() => {
-                    navigate('/admin/moderation')
-                  }}
+                  onClick={() => navigate('/admin/moderation')}
                   className="w-full flex items-center justify-center gap-2 rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2 text-sm font-semibold text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   <span className="material-symbols-outlined text-base">gavel</span>
