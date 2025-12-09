@@ -1,5 +1,5 @@
 from typing import List
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
@@ -114,10 +114,7 @@ def create_study_session(
 @router.put("/sessions/{session_id}", response_model=schemas.StudySessionResponse)
 def complete_study_session(
     session_id: int,
-    cards_studied: int,
-    cards_correct: int,
-    cards_incorrect: int,
-    duration_minutes: int,
+    session_data: schemas.StudySessionComplete,
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -130,11 +127,11 @@ def complete_study_session(
     if not db_session:
         raise HTTPException(status_code=404, detail="Study session not found")
     
-    db_session.cards_studied = cards_studied
-    db_session.cards_correct = cards_correct
-    db_session.cards_incorrect = cards_incorrect
-    db_session.duration_minutes = duration_minutes
-    db_session.completed_at = datetime.utcnow()
+    db_session.cards_studied = session_data.cards_studied
+    db_session.cards_correct = session_data.cards_correct
+    db_session.cards_incorrect = session_data.cards_incorrect
+    db_session.duration_minutes = session_data.duration_minutes
+    db_session.completed_at = datetime.now(timezone.utc)
     
     # Update leaderboard
     leaderboard = db.query(models.Leaderboard).filter(
@@ -154,7 +151,7 @@ def complete_study_session(
         )
         
         # Update streak
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
         if leaderboard.last_study_date:
             last_date = leaderboard.last_study_date.date()
             if (today - last_date).days == 1:
@@ -164,7 +161,7 @@ def complete_study_session(
         else:
             leaderboard.streak_days = 1
         
-        leaderboard.last_study_date = datetime.utcnow()
+        leaderboard.last_study_date = datetime.now(timezone.utc)
     
     db.commit()
     db.refresh(db_session)

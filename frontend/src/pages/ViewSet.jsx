@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import AdminSidebar from '../components/AdminSidebar'
+import AdminHeader from '../components/AdminHeader'
 import Sidebar from '../components/Sidebar'
 import TopNav from '../components/TopNav'
 
@@ -38,15 +39,16 @@ export default function ViewSet() {
         setSetInfo(setRes.data)
       } else {
         toast.error('Flashcard set not found')
-        navigate('/admin/sets')
+        navigate(isAdmin ? '/admin/sets' : '/sets')
         return
       }
 
       setCards(cardsRes.data || [])
     } catch (error) {
       console.error('Error fetching set data:', error)
-      toast.error('Failed to load flashcard set')
-      navigate('/admin/sets')
+      const errorMessage = error.response?.data?.detail || 'Failed to load flashcard set'
+      toast.error(errorMessage)
+      navigate(isAdmin ? '/admin/sets' : '/sets')
     } finally {
       setLoading(false)
     }
@@ -73,8 +75,10 @@ export default function ViewSet() {
       {isAdmin ? <AdminSidebar /> : <Sidebar />}
       {!isAdmin && <TopNav />}
 
-      <main className={`flex-1 p-8 ${!isAdmin ? 'pt-20' : ''}`}>
-        <div className="mx-auto flex w-full max-w-7xl flex-col">
+      <main className={`flex-1 flex flex-col overflow-y-auto ${!isAdmin ? 'pt-20' : ''}`}>
+        {isAdmin && <AdminHeader pageTitle={setInfo?.title || 'View Set'} />}
+        <div className="p-8">
+          <div className="mx-auto flex w-full max-w-7xl flex-col">
           {/* Header */}
           <div className="mb-6">
             <button
@@ -130,6 +134,7 @@ export default function ViewSet() {
                 ))}
               </div>
             )}
+          </div>
           </div>
         </div>
       </main>

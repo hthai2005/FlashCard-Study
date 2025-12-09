@@ -52,6 +52,11 @@ class FlashcardSetBase(BaseModel):
 class FlashcardSetCreate(FlashcardSetBase):
     pass
 
+class FlashcardSetUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    is_public: Optional[bool] = None
+
 class FlashcardSetResponse(FlashcardSetBase):
     id: int
     owner_id: int
@@ -71,6 +76,12 @@ class StudyAnswer(BaseModel):
 
 class StudySessionCreate(BaseModel):
     set_id: int
+
+class StudySessionComplete(BaseModel):
+    cards_studied: int
+    cards_correct: int
+    cards_incorrect: int
+    duration_minutes: int
 
 class StudySessionResponse(BaseModel):
     id: int

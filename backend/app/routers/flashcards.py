@@ -28,10 +28,14 @@ def get_flashcard_sets(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    sets = db.query(models.FlashcardSet).filter(
-        (models.FlashcardSet.owner_id == current_user.id) |
-        (models.FlashcardSet.is_public == True)
-    ).offset(skip).limit(limit).all()
+    # Admin can see all sets, regular users see only their own or public sets
+    if current_user.is_admin:
+        sets = db.query(models.FlashcardSet).offset(skip).limit(limit).all()
+    else:
+        sets = db.query(models.FlashcardSet).filter(
+            (models.FlashcardSet.owner_id == current_user.id) |
+            (models.FlashcardSet.is_public == True)
+        ).offset(skip).limit(limit).all()
     return sets
 
 @router.get("/sets/{set_id}", response_model=schemas.FlashcardSetWithCards)
@@ -44,15 +48,17 @@ def get_flashcard_set(
     if not db_set:
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     
-    if db_set.owner_id != current_user.id and not db_set.is_public:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    # Admin can access any set, regular users can only access their own or public sets
+    if not current_user.is_admin:
+        if db_set.owner_id != current_user.id and not db_set.is_public:
+            raise HTTPException(status_code=403, detail="Not authorized")
     
     return db_set
 
 @router.put("/sets/{set_id}", response_model=schemas.FlashcardSetResponse)
 def update_flashcard_set(
     set_id: int,
-    set_data: schemas.FlashcardSetBase,
+    set_data: schemas.FlashcardSetUpdate,
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -60,10 +66,14 @@ def update_flashcard_set(
     if not db_set:
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     
-    if db_set.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    # Admin can update any set, regular users can only update their own sets
+    if not current_user.is_admin:
+        if db_set.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized")
     
-    for key, value in set_data.dict().items():
+    # Only update fields that are provided (not None)
+    update_data = set_data.dict(exclude_unset=True)
+    for key, value in update_data.items():
         setattr(db_set, key, value)
     
     db.commit()
@@ -117,8 +127,10 @@ def get_flashcards(
     if not db_set:
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     
-    if db_set.owner_id != current_user.id and not db_set.is_public:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    # Admin can access any set, regular users can only access their own or public sets
+    if not current_user.is_admin:
+        if db_set.owner_id != current_user.id and not db_set.is_public:
+            raise HTTPException(status_code=403, detail="Not authorized")
     
     return db_set.flashcards
 

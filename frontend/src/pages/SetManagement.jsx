@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import AdminSidebar from '../components/AdminSidebar'
+import AdminHeader from '../components/AdminHeader'
 
 export default function SetManagement() {
   const { user, logout, loading: authLoading } = useAuth()
@@ -155,8 +156,10 @@ export default function SetManagement() {
       <AdminSidebar />
 
       {/* Main Content */}
-      <main className="flex-1 px-4 sm:px-6 lg:px-10 flex flex-1 justify-center py-8">
-        <div className="flex flex-col w-full max-w-7xl flex-1 gap-8">
+      <main className="flex-1 flex flex-col overflow-y-auto">
+        <AdminHeader pageTitle="Set Management" />
+        <div className="px-4 sm:px-6 lg:px-10 py-8">
+          <div className="flex flex-col w-full max-w-7xl flex-1 gap-8">
           {/* PageHeading */}
           <div className="flex flex-wrap justify-between gap-4 items-center">
             <p className="text-black dark:text-white text-4xl font-black leading-tight tracking-[-0.033em] min-w-72">
@@ -314,6 +317,12 @@ export default function SetManagement() {
                               >
                                 View
                               </button>
+                              <button
+                                onClick={() => handleDelete(set.id)}
+                                className="text-red-500 text-sm font-medium hover:underline"
+                              >
+                                Delete
+                              </button>
                               {set.status === 'Pending' && (
                                 <>
                                   <button
@@ -405,6 +414,7 @@ export default function SetManagement() {
                 </button>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </main>

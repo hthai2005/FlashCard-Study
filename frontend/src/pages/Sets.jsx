@@ -301,6 +301,13 @@ export default function Sets() {
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           <button
+                            onClick={() => navigate(`/sets/${set.id}`)}
+                            className="flex items-center justify-center gap-2 h-10 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-base">visibility</span>
+                            <span>View</span>
+                          </button>
+                          <button
                             onClick={() => navigate(`/study/${set.id}`)}
                             className="flex flex-1 items-center justify-center gap-2 h-10 px-4 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors"
                           >

@@ -20,13 +20,6 @@ export default function AdminSidebar() {
 
   return (
     <aside className="flex w-64 flex-col bg-white dark:bg-[#1A2831] border-r border-gray-200 dark:border-gray-700 h-screen sticky top-0">
-      <div className="flex items-center gap-3 p-6 border-b border-gray-200 dark:border-gray-700">
-        <div className="bg-primary p-2 rounded-lg text-white">
-          <span className="material-symbols-outlined">school</span>
-        </div>
-        <h1 className="text-xl font-bold text-gray-800 dark:text-white">Flashcard App</h1>
-      </div>
-
       <nav className="flex flex-col gap-2 p-4 grow">
         <Link
           to="/admin"
@@ -75,15 +68,6 @@ export default function AdminSidebar() {
       </nav>
 
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-3 mb-4 px-3 py-2">
-          <div className="bg-gradient-to-br from-primary-400 to-purple-500 aspect-square rounded-full size-10 flex items-center justify-center text-white font-semibold text-sm">
-            {user?.username?.charAt(0).toUpperCase() || 'A'}
-          </div>
-          <div className="flex flex-col flex-1">
-            <span className="text-sm font-medium text-gray-800 dark:text-white">{user?.username || 'Admin'}</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">Administrator</span>
-          </div>
-        </div>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer w-full"

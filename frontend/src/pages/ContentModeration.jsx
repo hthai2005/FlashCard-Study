@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import AdminSidebar from '../components/AdminSidebar'
+import AdminHeader from '../components/AdminHeader'
 
 export default function ContentModeration() {
   const { user, loading: authLoading } = useAuth()
@@ -213,25 +214,7 @@ export default function ContentModeration() {
 
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark">
-      {/* Header */}
-      <header className="flex h-16 shrink-0 items-center justify-between whitespace-nowrap border-b border-gray-200/10 dark:border-white/10 bg-background-light dark:bg-background-dark px-6">
-        <div className="flex items-center gap-4">
-          <span className="material-symbols-outlined text-primary text-3xl">shield_person</span>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white">Admin Panel</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <button className="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-background-light dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
-          <div
-            className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10"
-            data-alt="Administrator's profile picture"
-            style={{
-              backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuB1Bro7eJe90Vc7hAo8gY1hYAUALx_-C8ugKnfXosfp7qX0GWMW80U47_Q5JBgXAhwSGCotvEINQK_ghYRfxOf3gpbtxnwgmSUTeONcG_Yw9H9Wk0lC_GaTyQIrD0SjcVprkUQRUPKva67MrHDGXLu3UVKLvTKaT4pPdmyes3zSDtT7WUOuHrCBbK4DcYXDgxFvZtRbehUaWD0P-MEXdHo3f6B3mA2KVAHd0ne_6iwjBBEl8P0KsIVOW06ozHLmjq5DGQWiWHSprW0")`
-            }}
-          ></div>
-        </div>
-      </header>
+      <AdminHeader pageTitle="Content Moderation" />
 
       <div className="flex h-[calc(100vh-4rem)] grow">
         <AdminSidebar />

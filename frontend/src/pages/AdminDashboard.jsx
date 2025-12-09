@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import AdminSidebar from '../components/AdminSidebar'
+import AdminHeader from '../components/AdminHeader'
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth()
@@ -71,38 +72,7 @@ export default function AdminDashboard() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-y-auto">
-        {/* TopNavBar */}
-        <header className="flex items-center justify-between whitespace-nowrap border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1A2831] px-6 py-4 sticky top-0 z-10">
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</p>
-          <div className="flex items-center gap-4">
-            <label className="relative flex-1 max-w-sm">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
-                search
-              </span>
-              <input
-                className="form-input w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 pl-10 focus:ring-primary focus:border-primary"
-                placeholder="Search for users, sets..."
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </label>
-            <button className="relative p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10">
-              <span className="material-symbols-outlined">notifications</span>
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-primary-400 to-purple-500 aspect-square rounded-full size-10 flex items-center justify-center text-white font-semibold text-sm">
-                {user.username?.charAt(0).toUpperCase() || 'A'}
-              </div>
-              <div className="flex-col hidden md:flex">
-                <h2 className="text-sm font-medium text-gray-800 dark:text-white">
-                  {user.username || 'Admin Name'}
-                </h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
-              </div>
-            </div>
-          </div>
-        </header>
+        <AdminHeader pageTitle="Dashboard" />
 
         <div className="p-6 space-y-6">
           {/* Stats */}

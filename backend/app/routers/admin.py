@@ -108,9 +108,56 @@ def update_user(
             detail="User not found"
         )
     
-    # Update fields
+    # Update username if provided
+    if "username" in user_update:
+        new_username = user_update["username"].strip()
+        if not new_username:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username cannot be empty"
+            )
+        # Check if username already exists (excluding current user)
+        existing_user = db.query(models.User).filter(
+            models.User.username == new_username,
+            models.User.id != user_id
+        ).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already exists"
+            )
+        user.username = new_username
+    
+    # Update email if provided
+    if "email" in user_update:
+        new_email = user_update["email"].strip()
+        if not new_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email cannot be empty"
+            )
+        if "@" not in new_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid email format"
+            )
+        # Check if email already exists (excluding current user)
+        existing_user = db.query(models.User).filter(
+            models.User.email == new_email,
+            models.User.id != user_id
+        ).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already exists"
+            )
+        user.email = new_email
+    
+    # Update is_active if provided
     if "is_active" in user_update:
         user.is_active = user_update["is_active"]
+    
+    # Update is_admin if provided
     if "is_admin" in user_update:
         user.is_admin = user_update["is_admin"]
     
