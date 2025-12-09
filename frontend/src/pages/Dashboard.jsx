@@ -15,7 +15,9 @@ export default function Dashboard() {
   const [stats, setStats] = useState({
     streak: 0,
     totalMastered: 0,
-    accuracy: 0
+    accuracy: 0,
+    dailyGoal: 20,
+    dailyProgress: 0
   })
   const [deckProgress, setDeckProgress] = useState([])
   const [studyHistory, setStudyHistory] = useState([])
@@ -47,12 +49,14 @@ export default function Dashboard() {
       let totalCards = 0
       let correctAnswers = 0
       let totalAnswers = 0
+      let totalDailyProgress = 0
+      let dailyGoal = 20
 
       for (const set of setsRes.data) {
         try {
           const progressRes = await api.get(`/api/study/progress/${set.id}`).catch(() => null)
           if (progressRes && progressRes.data) {
-            const { total_cards, cards_mastered, cards_correct, cards_studied } = progressRes.data
+            const { total_cards, cards_mastered, cards_correct, cards_studied, daily_progress, daily_goal } = progressRes.data
             const mastery = total_cards > 0 ? Math.round((cards_mastered / total_cards) * 100) : 0
             const accuracy = cards_studied > 0 ? Math.round((cards_correct / cards_studied) * 100) : 0
             
@@ -60,6 +64,8 @@ export default function Dashboard() {
             totalCards += total_cards
             correctAnswers += cards_correct || 0
             totalAnswers += cards_studied || 0
+            totalDailyProgress += daily_progress || 0
+            if (daily_goal) dailyGoal = daily_goal
 
             progressData.push({
               id: set.id,
@@ -105,7 +111,9 @@ export default function Dashboard() {
       setStats({
         streak,
         totalMastered,
-        accuracy: overallAccuracy
+        accuracy: overallAccuracy,
+        dailyGoal,
+        dailyProgress: totalDailyProgress
       })
 
       if (setsRes.data.length > 0) {
@@ -171,7 +179,7 @@ export default function Dashboard() {
 
           {/* Stats Cards */}
           {user && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-white/10 bg-white dark:bg-background-dark">
                 <p className="text-gray-600 dark:text-gray-300 text-base font-medium leading-normal">
                   Current Study Streak
@@ -194,6 +202,35 @@ export default function Dashboard() {
                 </p>
                 <p className="text-gray-900 dark:text-white tracking-light text-3xl font-bold leading-tight">
                   {stats.accuracy}%
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-white/10 bg-white dark:bg-background-dark">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-gray-600 dark:text-gray-300 text-base font-medium leading-normal">
+                    Daily Goal
+                  </p>
+                  <p className="text-gray-900 dark:text-white text-sm font-semibold">
+                    {stats.dailyProgress} / {stats.dailyGoal}
+                  </p>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      (stats.dailyProgress / stats.dailyGoal) >= 1
+                        ? 'bg-green-500'
+                        : (stats.dailyProgress / stats.dailyGoal) >= 0.5
+                        ? 'bg-yellow-500'
+                        : 'bg-blue-500'
+                    }`}
+                    style={{
+                      width: `${Math.min((stats.dailyProgress / stats.dailyGoal) * 100, 100)}%`
+                    }}
+                  ></div>
+                </div>
+                <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
+                  {stats.dailyGoal - stats.dailyProgress > 0
+                    ? `${stats.dailyGoal - stats.dailyProgress} cards remaining`
+                    : 'Goal achieved! 🎉'}
                 </p>
               </div>
             </div>
