@@ -153,10 +153,33 @@ export default function TopNav() {
             {user ? (
               <button
                 onClick={() => navigate('/profile')}
-                className="bg-gradient-to-br from-primary-400 to-purple-500 aspect-square rounded-full size-10 flex items-center justify-center text-white font-semibold text-sm cursor-pointer hover:opacity-80 transition-opacity"
+                className="aspect-square rounded-full size-10 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity overflow-hidden border-2 border-primary/20 hover:border-primary/40 relative"
                 aria-label="User profile"
               >
-                {user.username?.charAt(0).toUpperCase() || 'U'}
+                {user.avatar_url ? (
+                  <>
+                    <img
+                      src={user.avatar_url.startsWith('http') ? user.avatar_url : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${user.avatar_url}`}
+                      alt={user.username || 'User'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Hide image and show fallback initial on error
+                        e.target.style.display = 'none'
+                        const fallback = e.target.parentElement.querySelector('.avatar-fallback')
+                        if (fallback) fallback.style.display = 'flex'
+                      }}
+                    />
+                    <div
+                      className="avatar-fallback bg-gradient-to-br from-primary-400 to-purple-500 w-full h-full items-center justify-center text-white font-semibold text-sm hidden absolute inset-0"
+                    >
+                      {user.username?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                  </>
+                ) : (
+                  <div className="bg-gradient-to-br from-primary-400 to-purple-500 w-full h-full flex items-center justify-center text-white font-semibold text-sm">
+                    {user.username?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                )}
               </button>
             ) : (
               <div className="flex items-center gap-2">
