@@ -102,7 +102,7 @@ export default function ContentModeration() {
         setSelectedReport(filteredReports[0])
       }
     } catch (error) {
-      toast.error('Failed to load reports')
+      toast.error('Không thể tải danh sách báo cáo')
     } finally {
       setLoading(false)
     }
@@ -118,27 +118,27 @@ export default function ContentModeration() {
     
     try {
       // In production, this would call an API
-      toast.success('Report approved. Content has been kept.')
+      toast.success('Đã phê duyệt báo cáo. Nội dung đã được giữ lại.')
       setReports(prev => prev.filter(r => r.id !== selectedReport.id))
       setSelectedReport(null)
       fetchReports()
     } catch (error) {
-      toast.error('Failed to approve report')
+      toast.error('Không thể phê duyệt báo cáo')
     }
   }
 
   const handleReject = async () => {
     if (!selectedReport) return
     
-    if (window.confirm('Are you sure you want to reject and remove this content?')) {
+    if (window.confirm('Bạn có chắc muốn từ chối và xóa nội dung này?')) {
       try {
         // In production, this would call an API to delete the set
-        toast.success('Content has been removed.')
+        toast.success('Nội dung đã được xóa.')
         setReports(prev => prev.filter(r => r.id !== selectedReport.id))
         setSelectedReport(null)
         fetchReports()
       } catch (error) {
-        toast.error('Failed to reject content')
+        toast.error('Không thể từ chối nội dung')
       }
     }
   }
@@ -154,13 +154,13 @@ export default function ContentModeration() {
     
     try {
       // In production, this would call an API to update the cards
-      toast.success('Content updated successfully')
+      toast.success('Đã cập nhật nội dung thành công')
       setShowEditModal(false)
       // Update the selected report with edited cards
       setSelectedReport({ ...selectedReport, cards: editingCards })
       fetchReports()
     } catch (error) {
-      toast.error('Failed to update content')
+      toast.error('Không thể cập nhật nội dung')
     }
   }
 
@@ -178,19 +178,19 @@ export default function ContentModeration() {
 
   const getPriorityBadge = (priority) => {
     const badges = {
-      high: { bg: 'bg-red-500/20', text: 'text-red-500', label: 'High Priority' },
-      medium: { bg: 'bg-yellow-500/20', text: 'text-yellow-500', label: 'In Review' },
-      low: { bg: 'bg-gray-500/20', text: 'text-gray-500', label: 'New' }
+      high: { bg: 'bg-red-500/20', text: 'text-red-500', label: 'Ưu Tiên Cao' },
+      medium: { bg: 'bg-yellow-500/20', text: 'text-yellow-500', label: 'Đang Xem Xét' },
+      low: { bg: 'bg-gray-500/20', text: 'text-gray-500', label: 'Mới' }
     }
     return badges[priority] || badges.low
   }
 
   const getStatusBadge = (status) => {
     const badges = {
-      pending: { bg: 'bg-red-500/20', text: 'text-red-500', label: 'High Priority' },
-      in_review: { bg: 'bg-yellow-500/20', text: 'text-yellow-500', label: 'In Review' },
-      new: { bg: 'bg-gray-500/20', text: 'text-gray-500', label: 'New' },
-      resolved: { bg: 'bg-green-500/20', text: 'text-green-500', label: 'Resolved' }
+      pending: { bg: 'bg-red-500/20', text: 'text-red-500', label: 'Ưu Tiên Cao' },
+      in_review: { bg: 'bg-yellow-500/20', text: 'text-yellow-500', label: 'Đang Xem Xét' },
+      new: { bg: 'bg-gray-500/20', text: 'text-gray-500', label: 'Mới' },
+      resolved: { bg: 'bg-green-500/20', text: 'text-green-500', label: 'Đã Xử Lý' }
     }
     return badges[status] || badges.new
   }
@@ -214,7 +214,7 @@ export default function ContentModeration() {
 
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark">
-      <AdminHeader pageTitle="Content Moderation" />
+      <AdminHeader pageTitle="Kiểm Duyệt Nội Dung" />
 
       <div className="flex h-[calc(100vh-4rem)] grow">
         <AdminSidebar />
@@ -225,10 +225,10 @@ export default function ContentModeration() {
           <div className="flex w-full flex-col overflow-y-auto border-r border-gray-200/10 dark:border-white/10 lg:w-2/5">
             <div className="sticky top-0 z-10 border-b border-gray-200/10 dark:border-white/10 bg-background-light/80 p-4 backdrop-blur-sm dark:bg-background-dark/80">
               <p className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
-                Content Moderation
+                Kiểm Duyệt Nội Dung
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Review and manage reported content.
+                Xem xét và quản lý nội dung bị báo cáo.
               </p>
             </div>
 
@@ -248,7 +248,7 @@ export default function ContentModeration() {
                   }`}
                 >
                   <p className={`text-sm ${activeTab === 'pending' ? 'font-bold text-primary' : 'font-medium'}`}>
-                    Pending Review
+                    Chờ Xem Xét
                   </p>
                 </a>
                 <a
@@ -264,7 +264,7 @@ export default function ContentModeration() {
                   }`}
                 >
                   <p className={`text-sm ${activeTab === 'resolved' ? 'font-bold text-primary' : 'font-medium'}`}>
-                    Resolved Cases
+                    Đã Xử Lý
                   </p>
                 </a>
                 <a
@@ -280,7 +280,7 @@ export default function ContentModeration() {
                   }`}
                 >
                   <p className={`text-sm ${activeTab === 'all' ? 'font-bold text-primary' : 'font-medium'}`}>
-                    All Reports
+                    Tất Cả Báo Cáo
                   </p>
                 </a>
               </div>
@@ -295,7 +295,7 @@ export default function ContentModeration() {
                   </div>
                   <input
                     className="form-input h-full w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-lg border border-l-0 border-gray-300 bg-white px-3 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-0 focus:ring-2 focus:ring-primary/50 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder:text-gray-500"
-                    placeholder="Search by title or user..."
+                    placeholder="Tìm kiếm theo tiêu đề hoặc người dùng..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -307,7 +307,7 @@ export default function ContentModeration() {
             <div className="flex-1 overflow-y-auto">
               {filteredReports.length === 0 ? (
                 <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                  No reports found
+                  Không tìm thấy báo cáo
                 </div>
               ) : (
                 filteredReports.map((report) => {
@@ -337,10 +337,10 @@ export default function ContentModeration() {
                         </span>
                       </div>
                       <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                        Reported for: <span className="font-medium">{report.reason}</span>
+                        Báo cáo vì: <span className="font-medium">{report.reason}</span>
                       </p>
                       <div className="mt-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                        <span>Reported by: {report.reportedBy}</span>
+                        <span>Báo cáo bởi: {report.reportedBy}</span>
                         <span>{formatDate(report.reportDate)}</span>
                       </div>
                     </div>
@@ -356,33 +356,33 @@ export default function ContentModeration() {
               <div className="space-y-6 p-6">
                 {/* Report Info */}
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">Report Details</h2>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">Chi Tiết Báo Cáo</h2>
                   <div className="mt-3 rounded-lg border border-gray-200/10 bg-background-light p-4 dark:border-white/10 dark:bg-background-dark">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-500 dark:text-gray-400">Reported Set</p>
+                        <p className="text-gray-500 dark:text-gray-400">Bộ Thẻ Bị Báo Cáo</p>
                         <p className="font-semibold text-gray-900 dark:text-white">{selectedReport.setTitle}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500 dark:text-gray-400">Set Creator</p>
+                        <p className="text-gray-500 dark:text-gray-400">Người Tạo</p>
                         <p className="font-semibold text-gray-900 dark:text-white">{selectedReport.setCreator}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500 dark:text-gray-400">Reported By</p>
+                        <p className="text-gray-500 dark:text-gray-400">Báo Cáo Bởi</p>
                         <p className="font-semibold text-gray-900 dark:text-white">{selectedReport.reportedBy}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500 dark:text-gray-400">Report Date</p>
+                        <p className="text-gray-500 dark:text-gray-400">Ngày Báo Cáo</p>
                         <p className="font-semibold text-gray-900 dark:text-white">
                           {formatDate(selectedReport.reportDate)}
                         </p>
                       </div>
                       <div className="col-span-2">
-                        <p className="text-gray-500 dark:text-gray-400">Reason</p>
+                        <p className="text-gray-500 dark:text-gray-400">Lý Do</p>
                         <p className="font-semibold text-red-500">{selectedReport.reason}</p>
                       </div>
                       <div className="col-span-2">
-                        <p className="text-gray-500 dark:text-gray-400">Reporter's Comment</p>
+                        <p className="text-gray-500 dark:text-gray-400">Bình Luận Của Người Báo Cáo</p>
                         <p className="rounded bg-gray-100 p-2 italic dark:bg-gray-800/50 text-gray-900 dark:text-white">
                           "{selectedReport.comment}"
                         </p>
@@ -393,7 +393,7 @@ export default function ContentModeration() {
 
                 {/* Content Preview */}
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">Content Preview</h2>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">Xem Trước Nội Dung</h2>
                   <div className="mt-3 h-64 overflow-y-auto rounded-lg border border-gray-200/10 bg-background-light p-4 dark:border-white/10 dark:bg-background-dark">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       {selectedReport.cards?.map((card) => (
@@ -410,7 +410,7 @@ export default function ContentModeration() {
                                 card.flagged ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'
                               }`}
                             >
-                              Card {card.id}: Front{card.flagged ? ' (Flagged)' : ''}
+                              Thẻ {card.id}: Mặt Trước{card.flagged ? ' (Đã Đánh Dấu)' : ''}
                             </p>
                             <p
                               className={`${
@@ -434,7 +434,7 @@ export default function ContentModeration() {
                                 card.flagged ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'
                               }`}
                             >
-                              Card {card.id}: Back{card.flagged ? ' (Flagged)' : ''}
+                              Thẻ {card.id}: Mặt Sau{card.flagged ? ' (Đã Đánh Dấu)' : ''}
                             </p>
                             <p
                               className={`${
@@ -454,11 +454,11 @@ export default function ContentModeration() {
 
                 {/* Moderator Actions */}
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">Moderator Actions</h2>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">Hành Động Kiểm Duyệt</h2>
                   <div className="mt-3 space-y-4">
                     <textarea
                       className="form-textarea w-full rounded-lg border border-gray-300 bg-white p-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:border-gray-700 dark:bg-gray-900/50 dark:text-white dark:placeholder-gray-500"
-                      placeholder="Add internal notes (optional)..."
+                      placeholder="Thêm ghi chú nội bộ (tùy chọn)..."
                       rows="3"
                       value={moderatorNotes}
                       onChange={(e) => setModeratorNotes(e.target.value)}
@@ -469,21 +469,21 @@ export default function ContentModeration() {
                         className="flex h-10 min-w-[120px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-emerald-500 px-4 text-sm font-bold text-white transition-colors hover:bg-emerald-600"
                       >
                         <span className="material-symbols-outlined">check_circle</span>
-                        <span>Approve</span>
+                        <span>Phê Duyệt</span>
                       </button>
                       <button
                         onClick={handleReject}
                         className="flex h-10 min-w-[120px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-red-600 px-4 text-sm font-bold text-white transition-colors hover:bg-red-700"
                       >
                         <span className="material-symbols-outlined">delete_forever</span>
-                        <span>Reject & Remove</span>
+                        <span>Từ Chối & Xóa</span>
                       </button>
                       <button
                         onClick={handleEdit}
                         className="flex h-10 min-w-[120px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg border border-gray-300 px-4 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-200 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                       >
                         <span className="material-symbols-outlined">edit</span>
-                        <span>Edit Content</span>
+                        <span>Chỉnh Sửa Nội Dung</span>
                       </button>
                     </div>
                   </div>
@@ -492,7 +492,7 @@ export default function ContentModeration() {
             </div>
           ) : (
             <div className="hidden w-full flex-col items-center justify-center bg-gray-100/50 dark:bg-gray-900/40 lg:flex lg:w-3/5">
-              <p className="text-gray-500 dark:text-gray-400">Select a report to view details</p>
+              <p className="text-gray-500 dark:text-gray-400">Chọn một báo cáo để xem chi tiết</p>
             </div>
           )}
         </main>
@@ -503,7 +503,7 @@ export default function ContentModeration() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Edit Content</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Chỉnh Sửa Nội Dung</h2>
               <button
                 onClick={() => {
                   setShowEditModal(false)
@@ -517,13 +517,13 @@ export default function ContentModeration() {
 
             <div className="space-y-4">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Editing: <span className="font-semibold">{selectedReport.setTitle}</span>
+                Đang chỉnh sửa: <span className="font-semibold">{selectedReport.setTitle}</span>
               </p>
 
               {editingCards.map((card) => (
                 <div key={card.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Card {card.id}</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Thẻ {card.id}</span>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
@@ -531,14 +531,14 @@ export default function ContentModeration() {
                         onChange={(e) => handleCardEdit(card.id, 'flagged', e.target.checked)}
                         className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary"
                       />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Flagged</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Đã Đánh Dấu</span>
                     </label>
                   </div>
                   
                   <div className="space-y-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Front
+                        Mặt Trước
                       </label>
                       <textarea
                         value={card.front}
@@ -550,7 +550,7 @@ export default function ContentModeration() {
                     
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Back
+                        Mặt Sau
                       </label>
                       <textarea
                         value={card.back}
@@ -572,13 +572,13 @@ export default function ContentModeration() {
                 }}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 onClick={handleSaveEdit}
                 className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
               >
-                Save Changes
+                Lưu Thay Đổi
               </button>
             </div>
           </div>
