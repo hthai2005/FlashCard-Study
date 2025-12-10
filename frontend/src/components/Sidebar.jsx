@@ -22,8 +22,8 @@ export default function Sidebar() {
               📚
             </div>
             <div className="flex flex-col">
-              <h1 className="text-white text-base font-medium leading-normal">Flashcard App</h1>
-              <p className="text-[#9da6b9] text-sm font-normal leading-normal">Study smarter</p>
+              <h1 className="text-white text-base font-medium leading-normal">Thẻ Ghi Nhớ</h1>
+              <p className="text-[#9da6b9] text-sm font-normal leading-normal">Học thông minh hơn</p>
             </div>
           </Link>
 
@@ -37,7 +37,7 @@ export default function Sidebar() {
               }`}
             >
               <span className="material-symbols-outlined">dashboard</span>
-              <p className="text-sm font-medium leading-normal">Dashboard</p>
+              <p className="text-sm font-medium leading-normal">Trang Chủ</p>
             </Link>
             <Link
               to="/sets"
@@ -48,7 +48,7 @@ export default function Sidebar() {
               }`}
             >
               <span className="material-symbols-outlined">layers</span>
-              <p className="text-sm font-medium leading-normal">All Sets</p>
+              <p className="text-sm font-medium leading-normal">Bộ Thẻ Của Tôi</p>
             </Link>
             <Link
               to="/leaderboard"
@@ -59,7 +59,7 @@ export default function Sidebar() {
               }`}
             >
               <span className="material-symbols-outlined">leaderboard</span>
-              <p className="text-sm font-medium leading-normal">Leaderboard</p>
+              <p className="text-sm font-medium leading-normal">Bảng Xếp Hạng</p>
             </Link>
             <Link
               to="/sets/create"
@@ -70,7 +70,7 @@ export default function Sidebar() {
               }`}
             >
               <span className="material-symbols-outlined">add_circle</span>
-              <p className="text-sm font-medium leading-normal">Create New</p>
+              <p className="text-sm font-medium leading-normal">Tạo Bộ Thẻ Mới</p>
             </Link>
             {user?.is_admin && (
               <Link
@@ -82,7 +82,7 @@ export default function Sidebar() {
                 }`}
               >
                 <span className="material-symbols-outlined">admin_panel_settings</span>
-                <p className="text-sm font-medium leading-normal">Admin Management</p>
+                <p className="text-sm font-medium leading-normal">Quản Trị</p>
               </Link>
             )}
           </nav>
@@ -94,7 +94,7 @@ export default function Sidebar() {
               {user?.username?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div className="flex flex-col flex-1">
-              <span className="text-sm font-medium text-white">{user?.username || 'User'}</span>
+              <span className="text-sm font-medium text-white">{user?.username || 'Người Dùng'}</span>
               <span className="text-xs text-gray-400">{user?.email || ''}</span>
             </div>
           </div>
@@ -107,14 +107,14 @@ export default function Sidebar() {
             }`}
           >
             <span className="material-symbols-outlined">terminal</span>
-            <p className="text-sm font-medium leading-normal">SSH Connection</p>
+            <p className="text-sm font-medium leading-normal">Kết Nối SSH</p>
           </Link>
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2 text-white/80 hover:bg-white/10 rounded-lg"
           >
             <span className="material-symbols-outlined">logout</span>
-            <p className="text-sm font-medium leading-normal">Logout</p>
+            <p className="text-sm font-medium leading-normal">Đăng Xuất</p>
           </button>
         </div>
       </div>

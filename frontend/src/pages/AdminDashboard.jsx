@@ -68,7 +68,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark">
-      <AdminHeader pageTitle="Dashboard" />
+      <AdminHeader pageTitle="Trang Chủ" />
 
       <div className="flex h-[calc(100vh-4rem)] grow">
       <AdminSidebar />
@@ -80,38 +80,38 @@ export default function AdminDashboard() {
           {/* Stats */}
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <div className="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-[#1A2831] border border-gray-200 dark:border-gray-700">
-              <p className="text-base font-medium text-gray-600 dark:text-gray-300">Total Users</p>
+              <p className="text-base font-medium text-gray-600 dark:text-gray-300">Tổng Người Dùng</p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 {stats.totalUsers.toLocaleString()}
               </p>
-              <p className="text-sm font-medium text-[#2ECC71]">+2.5% vs last month</p>
+              <p className="text-sm font-medium text-[#2ECC71]">+2.5% so với tháng trước</p>
             </div>
             <div className="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-[#1A2831] border border-gray-200 dark:border-gray-700">
               <p className="text-base font-medium text-gray-600 dark:text-gray-300">
-                Total Flashcard Sets
+                Tổng Bộ Thẻ
               </p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 {stats.totalSets.toLocaleString()}
               </p>
-              <p className="text-sm font-medium text-[#E74C3C]">-0.2% vs last month</p>
+              <p className="text-sm font-medium text-[#E74C3C]">-0.2% so với tháng trước</p>
             </div>
             <div className="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-[#1A2831] border border-gray-200 dark:border-gray-700">
               <p className="text-base font-medium text-gray-600 dark:text-gray-300">
-                Active Study Sessions
+                Phiên Học Đang Hoạt Động
               </p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 {stats.activeSessions.toLocaleString()}
               </p>
-              <p className="text-sm font-medium text-[#2ECC71]">+15% vs yesterday</p>
+              <p className="text-sm font-medium text-[#2ECC71]">+15% so với hôm qua</p>
             </div>
             <div className="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-[#1A2831] border border-gray-200 dark:border-gray-700">
               <p className="text-base font-medium text-gray-600 dark:text-gray-300">
-                Reported Items
+                Nội Dung Bị Báo Cáo
               </p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">
                 {stats.reportedItems}
               </p>
-              <p className="text-sm font-medium text-[#2ECC71]">-1% vs last week</p>
+              <p className="text-sm font-medium text-[#2ECC71]">-1% so với tuần trước</p>
             </div>
           </div>
 
@@ -120,13 +120,13 @@ export default function AdminDashboard() {
             <div className="lg:col-span-3 flex flex-col gap-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1A2831] p-6">
               <div className="flex flex-col">
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  New User Growth
+                  Tăng Trưởng Người Dùng Mới
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Last 30 Days</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">30 Ngày Qua</p>
               </div>
               <div className="h-72 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                 <p className="text-gray-400 dark:text-gray-500 text-sm">
-                  Chart visualization coming soon
+                  Biểu đồ sẽ sớm có mặt
                 </p>
               </div>
             </div>
@@ -134,13 +134,13 @@ export default function AdminDashboard() {
             <div className="lg:col-span-2 flex flex-col gap-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1A2831] p-6">
               <div className="flex flex-col">
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Top Flashcard Categories
+                  Danh Mục Thẻ Phổ Biến
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">All Time</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Tất Cả</p>
               </div>
               <div className="grid grid-rows-5 gap-4 pt-2">
                 <div className="flex items-center gap-4">
-                  <p className="w-16 text-sm text-gray-500 dark:text-gray-400">Science</p>
+                  <p className="w-16 text-sm text-gray-500 dark:text-gray-400">Khoa Học</p>
                   <div className="h-2 flex-1 rounded-full bg-gray-200 dark:bg-gray-700">
                     <div className="h-2 rounded-full bg-primary" style={{ width: '70%' }}></div>
                   </div>
@@ -197,7 +197,7 @@ export default function AdminDashboard() {
                   className="w-full flex items-center justify-center gap-2 rounded-lg bg-gray-200 dark:bg-gray-700 px-4 py-2 text-sm font-semibold text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   <span className="material-symbols-outlined text-base">gavel</span>
-                  Moderation Queue
+                  Hàng Đợi Kiểm Duyệt
                 </button>
               </div>
             </div>

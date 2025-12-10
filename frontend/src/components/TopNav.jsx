@@ -55,7 +55,7 @@ export default function TopNav() {
             className="flex items-center gap-2 text-slate-900 dark:text-white hover:opacity-80 transition-opacity cursor-pointer flex-shrink-0"
           >
             <span className="material-symbols-outlined text-primary text-2xl">style</span>
-            <h2 className="text-lg font-bold hidden sm:block">Flashcard</h2>
+            <h2 className="text-lg font-bold hidden sm:block">Thẻ Ghi Nhớ</h2>
           </Link>
 
           {/* Giữa - Navigation Links */}
@@ -68,7 +68,7 @@ export default function TopNav() {
                   : 'text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary'
               }`}
             >
-              Dashboard
+              Trang Chủ
             </Link>
             <Link
               to="/sets"
@@ -78,7 +78,7 @@ export default function TopNav() {
                   : 'text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary'
               }`}
             >
-              Decks
+              Bộ Thẻ
             </Link>
             <Link
               to="/leaderboard"
@@ -88,7 +88,7 @@ export default function TopNav() {
                   : 'text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary'
               }`}
             >
-              Study
+              Bảng Xếp Hạng
             </Link>
             {user?.is_admin && (
               <Link
@@ -99,7 +99,7 @@ export default function TopNav() {
                     : 'text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary'
                 }`}
               >
-                Admin
+                Quản Trị
               </Link>
             )}
           </nav>
@@ -114,7 +114,7 @@ export default function TopNav() {
                     <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none text-sm">search</span>
                     <input
                       className="w-full border-0 bg-transparent h-full pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-0"
-                      placeholder="Search..."
+                      placeholder="Tìm kiếm..."
                       type="search"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -138,11 +138,11 @@ export default function TopNav() {
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-50">
                   <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Notifications</h3>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Thông Báo</h3>
                   </div>
                   <div className="p-4">
                     <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">
-                      No new notifications
+                      Không có thông báo mới
                     </p>
                   </div>
                 </div>
@@ -164,13 +164,13 @@ export default function TopNav() {
                   to="/login"
                   className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors cursor-pointer whitespace-nowrap"
                 >
-                  Login
+                  Đăng Nhập
                 </Link>
                 <Link
                   to="/register"
                   className="px-4 py-2 rounded-lg border border-primary text-primary bg-transparent text-sm font-medium hover:bg-primary/10 transition-colors cursor-pointer whitespace-nowrap"
                 >
-                  Register
+                  Đăng Ký
                 </Link>
               </div>
             )}

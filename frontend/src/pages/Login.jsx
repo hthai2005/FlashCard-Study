@@ -39,12 +39,12 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
-          📚 Flashcard Study App
+          📚 Ứng Dụng Học Thẻ Ghi Nhớ
         </h1>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Username
+              Tên Đăng Nhập
             </label>
             <input
               type="text"
@@ -56,7 +56,7 @@ export default function Login() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Password
+              Mật Khẩu
             </label>
             <input
               type="password"
@@ -71,21 +71,21 @@ export default function Login() {
             disabled={isLoading}
             className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors"
           >
-            {isLoading ? 'Logging in...' : 'Login'}
+            {isLoading ? 'Đang đăng nhập...' : 'Đăng Nhập'}
           </button>
         </form>
         <div className="mt-4 space-y-3">
           <p className="text-center text-gray-600">
-            Don't have an account?{' '}
+            Chưa có tài khoản?{' '}
             <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
-              Register
+              Đăng Ký
             </Link>
           </p>
           <Link
             to="/"
             className="block w-full text-center px-4 py-2 border border-primary text-primary bg-transparent rounded-lg hover:bg-primary/10 transition-colors font-medium"
           >
-            Back to home
+            Về Trang Chủ
           </Link>
         </div>
       </div>

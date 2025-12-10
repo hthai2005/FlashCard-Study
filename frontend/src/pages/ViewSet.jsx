@@ -82,12 +82,12 @@ export default function ViewSet() {
         <div className="p-8">
           {!setInfo ? (
             <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-center min-h-[400px]">
-              <p className="text-gray-600 dark:text-gray-400 mb-4">Flashcard set not found</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">Không tìm thấy bộ thẻ</p>
               <button
                 onClick={() => navigate(isAdmin ? '/admin/sets' : '/sets')}
                 className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg"
               >
-                Back to Sets
+                Về Bộ Thẻ
               </button>
             </div>
           ) : (
@@ -99,7 +99,7 @@ export default function ViewSet() {
                   className="mb-4 flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                 >
                   <span className="material-symbols-outlined">arrow_back</span>
-                  <span>Back to Sets</span>
+                  <span>Về Bộ Thẻ</span>
                 </button>
                 <h1 className="text-gray-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">
                   {setInfo.title}
@@ -108,12 +108,12 @@ export default function ViewSet() {
                   <p className="mt-2 text-gray-600 dark:text-gray-400">{setInfo.description}</p>
                 )}
                 <div className="mt-4 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                  <span>Created: {new Date(setInfo.created_at).toLocaleDateString()}</span>
+                  <span>Tạo: {new Date(setInfo.created_at).toLocaleDateString('vi-VN')}</span>
                   <span>•</span>
-                  <span>Cards: {cards.length}</span>
+                  <span>Thẻ: {cards.length}</span>
                   <span>•</span>
                   <span className={`${setInfo.is_public ? 'text-green-500' : 'text-yellow-500'}`}>
-                    {setInfo.is_public ? 'Public' : 'Private'}
+                    {setInfo.is_public ? 'Công Khai' : 'Riêng Tư'}
                   </span>
                 </div>
               </div>
@@ -122,7 +122,7 @@ export default function ViewSet() {
               <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                 {cards.length === 0 ? (
                   <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                    No flashcards in this set
+                    Không có thẻ nào trong bộ này
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -134,11 +134,11 @@ export default function ViewSet() {
                           </div>
                           <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Front</p>
+                              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Mặt Trước</p>
                               <p className="text-gray-900 dark:text-white text-base">{card.front}</p>
                             </div>
                             <div>
-                              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Back</p>
+                              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Mặt Sau</p>
                               <p className="text-gray-900 dark:text-white text-base">{card.back}</p>
                             </div>
                           </div>

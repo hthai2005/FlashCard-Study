@@ -381,13 +381,13 @@ export default function Sets() {
             <>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <h1 className="text-slate-900 dark:text-white text-4xl font-black tracking-[-0.033em]">
-                  My Decks
+                  Bộ Thẻ Của Tôi
                 </h1>
                 <Link
                   to="/sets/create"
                   className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors"
                 >
-                  <span className="truncate">Create New Deck</span>
+                  <span className="truncate">Tạo Bộ Thẻ Mới</span>
                 </Link>
               </div>
 
@@ -400,7 +400,7 @@ export default function Sets() {
                       </div>
                       <input
                         className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-full placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 text-base font-normal"
-                        placeholder="Search my decks..."
+                        placeholder="Tìm kiếm bộ thẻ..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
@@ -421,7 +421,7 @@ export default function Sets() {
                         ? 'text-primary'
                         : 'text-slate-700 dark:text-slate-300'
                     }`}>
-                      Last Studied
+                      Học Gần Nhất
                     </p>
                     <span className="material-symbols-outlined text-slate-500 dark:text-slate-400">expand_more</span>
                   </button>
@@ -438,7 +438,7 @@ export default function Sets() {
                         ? 'text-primary'
                         : 'text-slate-700 dark:text-slate-300'
                     }`}>
-                      Alphabetical
+                      Theo Bảng Chữ Cái
                     </p>
                     <span className="material-symbols-outlined text-slate-500 dark:text-slate-400">expand_more</span>
                   </button>
@@ -448,13 +448,13 @@ export default function Sets() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {sortedSets.length === 0 ? (
                   <div className="col-span-full text-center py-12">
-                    <p className="text-gray-500 dark:text-gray-400 mb-4">No flashcard sets found</p>
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">Không tìm thấy bộ thẻ nào</p>
                     <Link
                       to="/sets/create"
                       className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
                     >
                       <span className="material-symbols-outlined">add</span>
-                      Create Your First Set
+                      Tạo Bộ Thẻ Đầu Tiên
                     </Link>
                   </div>
                 ) : (
@@ -475,12 +475,12 @@ export default function Sets() {
                             {set.title}
                           </p>
                           <p className="text-slate-500 dark:text-slate-400 text-sm">
-                            {cardCount} Cards
+                            {cardCount} Thẻ
                           </p>
                         </div>
                         <div className="flex flex-col gap-2">
                           <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
-                            <span>Mastery</span>
+                            <span>Mức Độ Thành Thạo</span>
                             <span>{mastery}%</span>
                           </div>
                           <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
@@ -496,14 +496,14 @@ export default function Sets() {
                             className="flex items-center justify-center gap-2 h-10 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                           >
                             <span className="material-symbols-outlined text-base">visibility</span>
-                            <span>View</span>
+                            <span>Xem</span>
                           </button>
                           <button
                             onClick={() => navigate(`/study/${set.id}`)}
                             className="flex flex-1 items-center justify-center gap-2 h-10 px-4 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors"
                           >
                             <span className="material-symbols-outlined">style</span>
-                            <span>Study</span>
+                            <span>Học</span>
                           </button>
                           <button
                             onClick={() => handleDeleteSet(set.id)}

@@ -36,7 +36,7 @@ export default function Profile() {
         password: '**********' // Placeholder
       })
     } catch (error) {
-      toast.error('Failed to load user data')
+      toast.error('Không thể tải dữ liệu người dùng')
     } finally {
       setLoading(false)
     }
@@ -59,11 +59,11 @@ export default function Profile() {
       }
 
       await api.put('/api/auth/me', updateData)
-      toast.success('Profile updated successfully!')
+      toast.success('Đã cập nhật hồ sơ thành công!')
       setIsEditing(false)
       fetchUserData() // Refresh data
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to update profile')
+      toast.error(error.response?.data?.detail || 'Không thể cập nhật hồ sơ')
     }
   }
 
@@ -109,7 +109,7 @@ export default function Profile() {
                 className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/20 text-primary cursor-pointer"
               >
                 <span className="material-symbols-outlined text-2xl">person</span>
-                <p className="text-sm font-medium leading-normal">Profile</p>
+                <p className="text-sm font-medium leading-normal">Hồ Sơ</p>
               </a>
               <a
                 onClick={(e) => {
@@ -119,25 +119,25 @@ export default function Profile() {
                 className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#283339] text-slate-700 dark:text-white transition-colors cursor-pointer"
               >
                 <span className="material-symbols-outlined text-2xl">military_tech</span>
-                <p className="text-sm font-medium leading-normal">Achievements</p>
+                <p className="text-sm font-medium leading-normal">Thành Tựu</p>
               </a>
               <div className="border-t border-slate-200 dark:border-[#283339] my-2"></div>
               <a
                 onClick={(e) => {
                   e.preventDefault()
-                  toast.info('Help center coming soon!')
+                  toast.info('Trung tâm trợ giúp sẽ sớm có mặt!')
                 }}
                 className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#283339] text-slate-700 dark:text-white transition-colors cursor-pointer"
               >
                 <span className="material-symbols-outlined text-2xl">help</span>
-                <p className="text-sm font-medium leading-normal">Help</p>
+                <p className="text-sm font-medium leading-normal">Trợ Giúp</p>
               </a>
               <a
                 onClick={handleLogout}
                 className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors cursor-pointer"
               >
                 <span className="material-symbols-outlined text-2xl">logout</span>
-                <p className="text-sm font-medium leading-normal">Log Out</p>
+                <p className="text-sm font-medium leading-normal">Đăng Xuất</p>
               </a>
             </div>
           </aside>
@@ -148,7 +148,7 @@ export default function Profile() {
               <div className="flex flex-col gap-6" id="profile">
                 <div className="flex flex-wrap justify-between gap-3">
                   <h1 className="text-slate-900 dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em] min-w-72">
-                    Profile Settings
+                    Cài Đặt Hồ Sơ
                   </h1>
                 </div>
 
@@ -162,7 +162,7 @@ export default function Profile() {
                             {user.username?.charAt(0).toUpperCase() || 'U'}
                           </div>
                           <button
-                            onClick={() => toast.info('Avatar upload coming soon!')}
+                            onClick={() => toast.info('Tải ảnh đại diện sẽ sớm có mặt!')}
                             className="absolute bottom-0 right-0 flex items-center justify-center size-8 sm:size-10 bg-primary text-white rounded-full border-2 border-white dark:border-[#1c2327] hover:bg-primary/90 transition-colors"
                           >
                             <span className="material-symbols-outlined text-lg sm:text-xl">edit</span>
@@ -170,7 +170,7 @@ export default function Profile() {
                         </div>
                         <div className="flex flex-col justify-center">
                           <p className="text-slate-900 dark:text-white text-xl sm:text-[22px] font-bold leading-tight tracking-[-0.015em]">
-                            {formData.full_name || user.username || 'User'}
+                            {formData.full_name || user.username || 'Người Dùng'}
                           </p>
                           <p className="text-slate-500 dark:text-[#9db0b9] text-base font-normal leading-normal">
                             @{formData.username || user.username || 'user'}
@@ -185,7 +185,7 @@ export default function Profile() {
                     <div className="flex flex-col md:flex-row gap-6">
                       <label className="flex flex-col min-w-40 flex-1">
                         <p className="text-slate-800 dark:text-white text-sm font-medium leading-normal pb-2">
-                          Full Name
+                          Họ Và Tên
                         </p>
                         <input
                           className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-800 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-[#3b4b54] bg-background-light dark:bg-[#101c22] focus:border-primary dark:focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-[#9db0b9] px-4 text-base font-normal leading-normal"
@@ -196,7 +196,7 @@ export default function Profile() {
                       </label>
                       <label className="flex flex-col min-w-40 flex-1">
                         <p className="text-slate-800 dark:text-white text-sm font-medium leading-normal pb-2">
-                          Username
+                          Tên Đăng Nhập
                         </p>
                         <input
                           className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-800 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-[#3b4b54] bg-background-light dark:bg-[#101c22] focus:border-primary dark:focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-[#9db0b9] px-4 text-base font-normal leading-normal"
@@ -210,7 +210,7 @@ export default function Profile() {
                     <div className="flex flex-col md:flex-row gap-6">
                       <label className="flex flex-col min-w-40 flex-1">
                         <p className="text-slate-800 dark:text-white text-sm font-medium leading-normal pb-2">
-                          Email Address
+                          Địa Chỉ Email
                         </p>
                         <input
                           className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-800 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-[#3b4b54] bg-background-light dark:bg-[#101c22] focus:border-primary dark:focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-[#9db0b9] px-4 text-base font-normal leading-normal"
@@ -222,14 +222,14 @@ export default function Profile() {
                       </label>
                       <label className="flex flex-col min-w-40 flex-1">
                         <p className="text-slate-800 dark:text-white text-sm font-medium leading-normal pb-2">
-                          Password
+                          Mật Khẩu
                         </p>
                         <input
                           className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-800 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 dark:border-[#3b4b54] bg-background-light dark:bg-[#101c22] focus:border-primary dark:focus:border-primary h-12 placeholder:text-slate-400 dark:placeholder:text-[#9db0b9] px-4 text-base font-normal leading-normal"
                           type="password"
                           value={formData.password}
                           onChange={(e) => handleInputChange('password', e.target.value)}
-                          placeholder="Enter new password"
+                          placeholder="Nhập mật khẩu mới"
                           disabled={!isEditing}
                         />
                       </label>
@@ -245,13 +245,13 @@ export default function Profile() {
                           onClick={handleCancel}
                           className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-slate-200 dark:bg-[#283339] text-slate-800 dark:text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-slate-300 dark:hover:bg-[#3b4b54] transition-colors"
                         >
-                          <span className="truncate">Cancel</span>
+                          <span className="truncate">Hủy</span>
                         </button>
                         <button
                           onClick={handleSave}
                           className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors"
                         >
-                          <span className="truncate">Save Changes</span>
+                          <span className="truncate">Lưu Thay Đổi</span>
                         </button>
                       </>
                     ) : (
@@ -259,7 +259,7 @@ export default function Profile() {
                         onClick={() => setIsEditing(true)}
                         className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors"
                       >
-                        <span className="truncate">Edit Profile</span>
+                        <span className="truncate">Chỉnh Sửa Hồ Sơ</span>
                       </button>
                     )}
                   </div>

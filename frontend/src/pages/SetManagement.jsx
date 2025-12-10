@@ -69,7 +69,7 @@ export default function SetManagement() {
         reportedSets: reportedCount
       })
     } catch (error) {
-      toast.error('Failed to load flashcard sets')
+      toast.error('Không thể tải danh sách bộ thẻ')
     } finally {
       setLoading(false)
     }
@@ -92,13 +92,13 @@ export default function SetManagement() {
   }
 
   const handleDelete = async (setId) => {
-    if (window.confirm('Are you sure you want to delete this set?')) {
+    if (window.confirm('Bạn có chắc muốn xóa bộ thẻ này?')) {
       try {
         await api.delete(`/api/flashcards/sets/${setId}`)
-        toast.success('Set deleted successfully')
+        toast.success('Đã xóa bộ thẻ thành công')
         fetchSets()
       } catch (error) {
-        toast.error('Failed to delete set')
+        toast.error('Không thể xóa bộ thẻ')
       }
     }
   }
@@ -106,20 +106,20 @@ export default function SetManagement() {
   const handleApprove = async (setId) => {
     try {
       await api.put(`/api/flashcards/sets/${setId}`, { is_public: true })
-      toast.success('Set approved')
+      toast.success('Đã phê duyệt bộ thẻ')
       fetchSets()
     } catch (error) {
-      toast.error('Failed to approve set')
+      toast.error('Không thể phê duyệt bộ thẻ')
     }
   }
 
   const handleReject = async (setId) => {
     try {
       await api.put(`/api/flashcards/sets/${setId}`, { is_public: false })
-      toast.success('Set rejected')
+      toast.success('Đã từ chối bộ thẻ')
       fetchSets()
     } catch (error) {
-      toast.error('Failed to reject set')
+      toast.error('Không thể từ chối bộ thẻ')
     }
   }
 
@@ -154,7 +154,7 @@ export default function SetManagement() {
 
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark">
-      <AdminHeader pageTitle="Set Management" />
+      <AdminHeader pageTitle="Quản Lý Bộ Thẻ" />
 
       <div className="flex h-[calc(100vh-4rem)] grow">
       <AdminSidebar />
@@ -166,26 +166,26 @@ export default function SetManagement() {
           {/* PageHeading */}
           <div className="flex flex-wrap justify-between gap-4 items-center">
             <p className="text-black dark:text-white text-4xl font-black leading-tight tracking-[-0.033em] min-w-72">
-              Flashcard Set Management
+              Quản Lý Bộ Thẻ
             </p>
           </div>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-white/10 bg-white/5">
-              <p className="text-slate-400 text-base font-medium leading-normal">Pending Review</p>
+              <p className="text-slate-400 text-base font-medium leading-normal">Chờ Xem Xét</p>
               <p className="text-black dark:text-white tracking-light text-3xl font-bold leading-tight">
                 {stats.pendingReview}
               </p>
             </div>
             <div className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-white/10 bg-white/5">
-              <p className="text-slate-400 text-base font-medium leading-normal">Total Sets</p>
+              <p className="text-slate-400 text-base font-medium leading-normal">Tổng Bộ Thẻ</p>
               <p className="text-black dark:text-white tracking-light text-3xl font-bold leading-tight">
                 {stats.totalSets.toLocaleString()}
               </p>
             </div>
             <div className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-white/10 bg-white/5">
-              <p className="text-slate-400 text-base font-medium leading-normal">Reported Sets</p>
+              <p className="text-slate-400 text-base font-medium leading-normal">Bộ Thẻ Bị Báo Cáo</p>
               <p className="text-black dark:text-white tracking-light text-3xl font-bold leading-tight">
                 {stats.reportedSets}
               </p>
@@ -197,19 +197,19 @@ export default function SetManagement() {
             <div className="flex flex-wrap justify-between gap-4 py-3">
               <div className="flex gap-2">
                 <button
-                  onClick={() => toast.info('Filter functionality coming soon!')}
+                  onClick={() => toast.info('Chức năng lọc sẽ sớm có mặt!')}
                   className="p-2.5 rounded-lg bg-white/5 text-black dark:text-white hover:bg-white/10 transition-colors"
                 >
                   <span className="material-symbols-outlined">filter_list</span>
                 </button>
                 <button
-                  onClick={() => toast.info('Sort functionality coming soon!')}
+                  onClick={() => toast.info('Chức năng sắp xếp sẽ sớm có mặt!')}
                   className="p-2.5 rounded-lg bg-white/5 text-black dark:text-white hover:bg-white/10 transition-colors"
                 >
                   <span className="material-symbols-outlined">swap_vert</span>
                 </button>
                 <button
-                  onClick={() => toast.info('Export functionality coming soon!')}
+                  onClick={() => toast.info('Chức năng xuất sẽ sớm có mặt!')}
                   className="p-2.5 rounded-lg bg-white/5 text-black dark:text-white hover:bg-white/10 transition-colors"
                 >
                   <span className="material-symbols-outlined">download</span>
@@ -222,7 +222,7 @@ export default function SetManagement() {
                 <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
                   add
                 </span>
-                <span className="truncate">Add New Set</span>
+                <span className="truncate">Thêm Bộ Thẻ Mới</span>
               </button>
             </div>
 
@@ -241,22 +241,22 @@ export default function SetManagement() {
                         />
                       </th>
                       <th className="px-4 py-3 text-slate-400 w-2/6 text-sm font-medium leading-normal">
-                        Set Title
+                        Tên Bộ Thẻ
                       </th>
                       <th className="px-4 py-3 text-slate-400 w-1/6 text-sm font-medium leading-normal hidden md:table-cell">
-                        Creator
+                        Người Tạo
                       </th>
                       <th className="px-4 py-3 text-slate-400 w-1/6 text-sm font-medium leading-normal hidden lg:table-cell">
-                        Date Created
+                        Ngày Tạo
                       </th>
                       <th className="px-4 py-3 text-slate-400 w-[80px] text-sm font-medium leading-normal hidden sm:table-cell">
-                        Cards
+                        Thẻ
                       </th>
                       <th className="px-4 py-3 text-slate-400 w-[120px] text-sm font-medium leading-normal">
-                        Status
+                        Trạng Thái
                       </th>
                       <th className="px-4 py-3 text-slate-400 w-[120px] text-sm font-medium leading-normal">
-                        Actions
+                        Thao Tác
                       </th>
                     </tr>
                   </thead>
@@ -264,7 +264,7 @@ export default function SetManagement() {
                     {paginatedSets.length === 0 ? (
                       <tr>
                         <td colSpan="7" className="px-4 py-8 text-center text-slate-400">
-                          No flashcard sets found
+                          Không tìm thấy bộ thẻ nào
                         </td>
                       </tr>
                     ) : (
@@ -309,7 +309,7 @@ export default function SetManagement() {
                                     : 'bg-red-400'
                                 }`}
                               ></span>
-                              {set.status}
+                              {set.status === 'Approved' ? 'Đã Phê Duyệt' : set.status === 'Pending' ? 'Chờ Xem Xét' : 'Từ Chối'}
                             </div>
                           </td>
                           <td className="h-[72px] px-4 py-2 w-[120px]">
@@ -318,13 +318,13 @@ export default function SetManagement() {
                                 onClick={() => navigate(`/sets/${set.id}`)}
                                 className="text-primary text-sm font-bold leading-normal tracking-[0.015em] cursor-pointer hover:underline"
                               >
-                                View
+                                Xem
                               </button>
                               <button
                                 onClick={() => handleDelete(set.id)}
                                 className="text-red-500 text-sm font-medium hover:underline"
                               >
-                                Delete
+                                Xóa
                               </button>
                               {set.status === 'Pending' && (
                                 <>
@@ -332,13 +332,13 @@ export default function SetManagement() {
                                     onClick={() => handleApprove(set.id)}
                                     className="text-green-400 text-sm font-medium hover:underline"
                                   >
-                                    Approve
+                                    Phê Duyệt
                                   </button>
                                   <button
                                     onClick={() => handleReject(set.id)}
                                     className="text-red-400 text-sm font-medium hover:underline"
                                   >
-                                    Reject
+                                    Từ Chối
                                   </button>
                                 </>
                               )}
