@@ -2,7 +2,7 @@ from typing import List
 from datetime import datetime, timedelta, date, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, distinct
 from app.database import get_db
 from app import models, schemas, auth, spaced_repetition
 from app.schemas import (
@@ -209,12 +209,16 @@ def get_study_progress(
         models.StudyRecord.correct_count > 5
     ).count()
     
-    # Count total cards studied by this user (cards with at least one study record)
-    cards_studied_count = db.query(models.StudyRecord).filter(
+    # Count total unique cards studied by this user
+    # A card is considered "studied" if it has a study record with total_reviews > 0
+    # This means the user has reviewed it at least once
+    # Use distinct on flashcard_id to count unique cards, not study records
+    from sqlalchemy import distinct
+    cards_studied_count = db.query(func.count(distinct(models.StudyRecord.flashcard_id))).filter(
         models.StudyRecord.user_id == current_user.id,
         models.StudyRecord.flashcard.has(models.Flashcard.set_id == set_id),
         models.StudyRecord.total_reviews > 0
-    ).count()
+    ).scalar() or 0
     
     # Get daily progress
     today = datetime.utcnow().date()

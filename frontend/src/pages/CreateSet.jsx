@@ -68,8 +68,10 @@ export default function CreateSet() {
       }
 
       toast.success(`Đã tạo bộ thẻ với ${validCards.length} thẻ!`)
+      // Navigate to sets page - it will auto-refresh due to location.pathname dependency
       navigate('/sets')
     } catch (error) {
+      console.error('Error creating set:', error)
       toast.error(error.response?.data?.detail || 'Không thể tạo bộ thẻ')
     }
   }

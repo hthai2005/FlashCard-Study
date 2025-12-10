@@ -1,10 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.database import engine, Base
 from app.routers import auth, flashcards, study, leaderboard, ai, admin
+from pathlib import Path
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+
+# Create uploads directory if it doesn't exist
+uploads_dir = Path("uploads/avatars")
+uploads_dir.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
     title="Flashcard Study App API",
@@ -38,6 +44,9 @@ app.include_router(study.router, prefix="/api/study", tags=["Study"])
 app.include_router(leaderboard.router, prefix="/api/leaderboard", tags=["Leaderboard"])
 app.include_router(ai.router, prefix="/api/ai", tags=["AI"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
+
+# Mount static files for avatar uploads
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 async def root():

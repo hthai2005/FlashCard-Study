@@ -1,6 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_, and_
 from app.database import get_db
 from app import models, schemas, auth
 from app.schemas import (
@@ -59,18 +60,31 @@ def get_my_flashcard_sets(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get only the current user's flashcard sets (for 'My Decks' page)"""
-    query = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner))
-    sets = query.filter(
-        models.FlashcardSet.owner_id == current_user.id
-    ).offset(skip).limit(limit).all()
-    
-    # Add username to each set
-    for set_item in sets:
-        if set_item.owner:
-            set_item.owner_username = set_item.owner.username
-    
-    return sets
+    """Get current user's flashcard sets + public sets from other users (for 'My Decks' page)"""
+    try:
+        query = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner))
+        # Get user's own sets OR public sets from other users
+        sets = query.filter(
+            or_(
+                models.FlashcardSet.owner_id == current_user.id,
+                and_(
+                    models.FlashcardSet.is_public == True,
+                    models.FlashcardSet.owner_id != current_user.id
+                )
+            )
+        ).offset(skip).limit(limit).all()
+        
+        # Add username to each set
+        for set_item in sets:
+            if set_item.owner:
+                set_item.owner_username = set_item.owner.username
+        
+        return sets
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching flashcard sets: {str(e)}"
+        )
 
 @router.get("/sets/{set_id}", response_model=FlashcardSetWithCards)
 def get_flashcard_set(

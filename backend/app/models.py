@@ -12,6 +12,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)  # Admin flag
+    avatar_url = Column(String, nullable=True)  # URL to avatar image
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships

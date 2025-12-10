@@ -32,6 +32,21 @@ export default function Dashboard() {
     }
   }, [user, authLoading, timeFilter])
 
+  // Listen for study progress updates
+  useEffect(() => {
+    const handleStudyProgressUpdate = () => {
+      // Refresh dashboard data when study progress is updated
+      if (user && !authLoading) {
+        fetchData()
+      }
+    }
+
+    window.addEventListener('studyProgressUpdated', handleStudyProgressUpdate)
+    return () => {
+      window.removeEventListener('studyProgressUpdated', handleStudyProgressUpdate)
+    }
+  }, [user, authLoading])
+
   const fetchData = async () => {
     try {
       const [setsRes, historyRes, activityRes] = await Promise.all([
@@ -382,35 +397,35 @@ export default function Dashboard() {
                             'bg-green-800 dark:bg-green-500'
                           ]
                           
-                          return studyActivity.slice(-365).map((activity, index) => {
-                            const date = new Date(activity.date)
-                            const dayOfWeek = date.getDay()
-                            const intensity = activity.intensity
+                          const items = []
+                          const activities = studyActivity.slice(-365)
                           
                           // Align first day of year to correct day of week
-                          if (index === 0 && dayOfWeek !== 0) {
-                            return (
-                              <>
-                                {Array.from({ length: dayOfWeek }).map((_, i) => (
+                          if (activities.length > 0) {
+                            const firstDate = new Date(activities[0].date)
+                            const dayOfWeek = firstDate.getDay()
+                            
+                            if (dayOfWeek !== 0) {
+                              for (let i = 0; i < dayOfWeek; i++) {
+                                items.push(
                                   <div key={`empty-${i}`} className="aspect-square"></div>
-                                ))}
-                                <div
-                                  key={activity.date}
-                                  className={`aspect-square rounded ${bgColors[intensity]} cursor-pointer hover:ring-2 hover:ring-primary transition-all`}
-                                  title={`${activity.date}: ${activity.cards_studied} cards`}
-                                ></div>
-                              </>
-                            )
+                                )
+                              }
+                            }
                           }
                           
-                          return (
-                            <div
-                              key={activity.date}
-                              className={`aspect-square rounded ${bgColors[intensity]} cursor-pointer hover:ring-2 hover:ring-primary transition-all`}
-                              title={`${activity.date}: ${activity.cards_studied} cards`}
-                            ></div>
-                          )
+                          activities.forEach((activity, index) => {
+                            const intensity = activity.intensity
+                            items.push(
+                              <div
+                                key={activity.date || `activity-${index}`}
+                                className={`aspect-square rounded ${bgColors[intensity]} cursor-pointer hover:ring-2 hover:ring-primary transition-all`}
+                                title={`${activity.date}: ${activity.cards_studied} cards`}
+                              ></div>
+                            )
                           })
+                          
+                          return items
                         })()}
                       </div>
                       <div className="flex items-center justify-end gap-4 mt-4 text-xs text-gray-500 dark:text-gray-400">
