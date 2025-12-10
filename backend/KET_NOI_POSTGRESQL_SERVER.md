@@ -197,3 +197,4 @@ postgresql://flashcard_user:mypassword123@192.168.1.100:5432/flashcard_db
 postgresql://postgres:admin123@example.com:5432/flashcard_db?sslmode=require
 ```
 
+

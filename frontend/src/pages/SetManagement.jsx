@@ -42,14 +42,14 @@ export default function SetManagement() {
             return {
               ...set,
               card_count: cardsRes.data.length || 0,
-              creator: set.user?.username || 'Unknown',
+              creator: set.owner_username || 'Unknown',
               status: set.is_public ? 'Approved' : 'Pending'
             }
           } catch {
             return {
               ...set,
               card_count: 0,
-              creator: set.user?.username || 'Unknown',
+              creator: set.owner_username || 'Unknown',
               status: set.is_public ? 'Approved' : 'Pending'
             }
           }

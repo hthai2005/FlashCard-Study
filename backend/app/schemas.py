@@ -60,6 +60,7 @@ class FlashcardSetUpdate(BaseModel):
 class FlashcardSetResponse(FlashcardSetBase):
     id: int
     owner_id: int
+    owner_username: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     

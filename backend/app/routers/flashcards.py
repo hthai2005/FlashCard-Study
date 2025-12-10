@@ -1,6 +1,6 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app import models, schemas, auth
 
@@ -19,6 +19,11 @@ def create_flashcard_set(
     db.add(db_set)
     db.commit()
     db.refresh(db_set)
+    # Reload with owner relationship
+    db_set = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner)).filter(models.FlashcardSet.id == db_set.id).first()
+    # Add username
+    if db_set.owner:
+        db_set.owner_username = db_set.owner.username
     return db_set
 
 @router.get("/sets", response_model=List[schemas.FlashcardSetResponse])
@@ -29,13 +34,20 @@ def get_flashcard_sets(
     db: Session = Depends(get_db)
 ):
     # Admin can see all sets, regular users see only their own or public sets
+    query = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner))
     if current_user.is_admin:
-        sets = db.query(models.FlashcardSet).offset(skip).limit(limit).all()
+        sets = query.offset(skip).limit(limit).all()
     else:
-        sets = db.query(models.FlashcardSet).filter(
+        sets = query.filter(
             (models.FlashcardSet.owner_id == current_user.id) |
             (models.FlashcardSet.is_public == True)
         ).offset(skip).limit(limit).all()
+    
+    # Add username to each set
+    for set_item in sets:
+        if set_item.owner:
+            set_item.owner_username = set_item.owner.username
+    
     return sets
 
 @router.get("/sets/{set_id}", response_model=schemas.FlashcardSetWithCards)
@@ -44,7 +56,7 @@ def get_flashcard_set(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    db_set = db.query(models.FlashcardSet).filter(models.FlashcardSet.id == set_id).first()
+    db_set = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner)).filter(models.FlashcardSet.id == set_id).first()
     if not db_set:
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     
@@ -52,6 +64,10 @@ def get_flashcard_set(
     if not current_user.is_admin:
         if db_set.owner_id != current_user.id and not db_set.is_public:
             raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Add username
+    if db_set.owner:
+        db_set.owner_username = db_set.owner.username
     
     return db_set
 
@@ -62,7 +78,7 @@ def update_flashcard_set(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    db_set = db.query(models.FlashcardSet).filter(models.FlashcardSet.id == set_id).first()
+    db_set = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner)).filter(models.FlashcardSet.id == set_id).first()
     if not db_set:
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     
@@ -78,6 +94,11 @@ def update_flashcard_set(
     
     db.commit()
     db.refresh(db_set)
+    # Reload with owner relationship
+    db_set = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner)).filter(models.FlashcardSet.id == set_id).first()
+    # Add username
+    if db_set.owner:
+        db_set.owner_username = db_set.owner.username
     return db_set
 
 @router.delete("/sets/{set_id}")
