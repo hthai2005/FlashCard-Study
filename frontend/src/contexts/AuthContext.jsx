@@ -64,12 +64,18 @@ export function AuthProvider({ children }) {
   }
 
   const register = async (username, email, password) => {
-    const response = await api.post('/api/auth/register', {
-      username,
-      email,
-      password
-    })
-    return response.data
+    try {
+      const response = await api.post('/api/auth/register', {
+        username,
+        email,
+        password
+      })
+      return response.data
+    } catch (error) {
+      console.error('Registration error:', error)
+      // Re-throw error so it can be caught in the component
+      throw error
+    }
   }
 
   const logout = () => {

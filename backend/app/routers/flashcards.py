@@ -37,15 +37,13 @@ def get_flashcard_sets(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Admin can see all sets, regular users see only their own or public sets
+    # All users (including admin) see only their own sets
+    # "My Decks" should only show sets owned by the user
+    # Admin can use /api/admin/sets endpoint to see all sets for management
     query = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner))
-    if current_user.is_admin:
-        sets = query.offset(skip).limit(limit).all()
-    else:
-        sets = query.filter(
-            (models.FlashcardSet.owner_id == current_user.id) |
-            (models.FlashcardSet.is_public == True)
-        ).offset(skip).limit(limit).all()
+    sets = query.filter(
+        models.FlashcardSet.owner_id == current_user.id
+    ).offset(skip).limit(limit).all()
     
     # Add username to each set
     for set_item in sets:

@@ -31,7 +31,8 @@ export default function SetManagement() {
 
   const fetchSets = async () => {
     try {
-      const response = await api.get('/api/flashcards/sets').catch(() => ({ data: [] }))
+      // Use admin endpoint to get all sets for management
+      const response = await api.get('/api/admin/sets').catch(() => ({ data: [] }))
       const allSets = response.data || []
 
       // Get card counts for each set
