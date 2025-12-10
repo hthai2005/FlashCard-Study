@@ -3,12 +3,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app import models, schemas, auth
+from app.schemas import (
+    FlashcardSetResponse, FlashcardSetCreate, FlashcardSetUpdate, FlashcardSetWithCards,
+    FlashcardResponse, FlashcardCreate, FlashcardBase
+)
 
 router = APIRouter()
 
-@router.post("/sets", response_model=schemas.FlashcardSetResponse)
+@router.post("/sets", response_model=FlashcardSetResponse)
 def create_flashcard_set(
-    set_data: schemas.FlashcardSetCreate,
+    set_data: FlashcardSetCreate,
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -26,7 +30,7 @@ def create_flashcard_set(
         db_set.owner_username = db_set.owner.username
     return db_set
 
-@router.get("/sets", response_model=List[schemas.FlashcardSetResponse])
+@router.get("/sets", response_model=List[FlashcardSetResponse])
 def get_flashcard_sets(
     skip: int = 0,
     limit: int = 100,
@@ -50,7 +54,27 @@ def get_flashcard_sets(
     
     return sets
 
-@router.get("/sets/{set_id}", response_model=schemas.FlashcardSetWithCards)
+@router.get("/sets/my", response_model=List[FlashcardSetResponse])
+def get_my_flashcard_sets(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get only the current user's flashcard sets (for 'My Decks' page)"""
+    query = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner))
+    sets = query.filter(
+        models.FlashcardSet.owner_id == current_user.id
+    ).offset(skip).limit(limit).all()
+    
+    # Add username to each set
+    for set_item in sets:
+        if set_item.owner:
+            set_item.owner_username = set_item.owner.username
+    
+    return sets
+
+@router.get("/sets/{set_id}", response_model=FlashcardSetWithCards)
 def get_flashcard_set(
     set_id: int,
     current_user: models.User = Depends(auth.get_current_user),
@@ -71,10 +95,10 @@ def get_flashcard_set(
     
     return db_set
 
-@router.put("/sets/{set_id}", response_model=schemas.FlashcardSetResponse)
+@router.put("/sets/{set_id}", response_model=FlashcardSetResponse)
 def update_flashcard_set(
     set_id: int,
-    set_data: schemas.FlashcardSetUpdate,
+    set_data: FlashcardSetUpdate,
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -118,10 +142,10 @@ def delete_flashcard_set(
     db.commit()
     return {"message": "Flashcard set deleted"}
 
-@router.post("/sets/{set_id}/cards", response_model=schemas.FlashcardResponse)
+@router.post("/sets/{set_id}/cards", response_model=FlashcardResponse)
 def create_flashcard(
     set_id: int,
-    card: schemas.FlashcardCreate,
+    card: FlashcardCreate,
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -138,7 +162,7 @@ def create_flashcard(
     db.refresh(db_card)
     return db_card
 
-@router.get("/sets/{set_id}/cards", response_model=List[schemas.FlashcardResponse])
+@router.get("/sets/{set_id}/cards", response_model=List[FlashcardResponse])
 def get_flashcards(
     set_id: int,
     current_user: models.User = Depends(auth.get_current_user),
@@ -155,10 +179,10 @@ def get_flashcards(
     
     return db_set.flashcards
 
-@router.put("/cards/{card_id}", response_model=schemas.FlashcardResponse)
+@router.put("/cards/{card_id}", response_model=FlashcardResponse)
 def update_flashcard(
     card_id: int,
-    card: schemas.FlashcardBase,
+    card: FlashcardBase,
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):

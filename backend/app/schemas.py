@@ -13,6 +13,7 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     id: int
     is_active: bool
+    is_admin: bool = False
     created_at: datetime
     
     class Config:
@@ -51,6 +52,11 @@ class FlashcardSetBase(BaseModel):
 class FlashcardSetCreate(FlashcardSetBase):
     pass
 
+class FlashcardSetUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    is_public: Optional[bool] = None
+
 class FlashcardSetResponse(FlashcardSetBase):
     id: int
     owner_id: int
@@ -85,6 +91,12 @@ class StudySessionResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class StudySessionComplete(BaseModel):
+    cards_studied: int
+    cards_correct: int
+    cards_incorrect: int
+    duration_minutes: int
+
 class StudyProgress(BaseModel):
     total_cards: int
     cards_to_review: int
@@ -92,6 +104,18 @@ class StudyProgress(BaseModel):
     daily_goal: int
     daily_progress: int
     streak_days: int
+
+class StudySessionDataPoint(BaseModel):
+    date: str
+    cards_studied: int
+    cards_correct: int
+    accuracy: float
+    sessions_count: int
+
+class StudyActivityDataPoint(BaseModel):
+    date: str
+    cards_studied: int
+    intensity: int  # 0-4 for heatmap visualization
 
 # Leaderboard schemas
 class LeaderboardEntry(BaseModel):
@@ -115,6 +139,10 @@ class ImportRequest(BaseModel):
     file_content: str  # CSV or JSON content
 
 # Auth schemas
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
 class Token(BaseModel):
     access_token: str
     token_type: str

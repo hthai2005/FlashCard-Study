@@ -4,10 +4,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from app.database import get_db
 from app import models, schemas, auth
+from app.schemas import LeaderboardEntry
 
 router = APIRouter()
 
-@router.get("/", response_model=List[schemas.LeaderboardEntry])
+@router.get("/", response_model=List[LeaderboardEntry])
 def get_leaderboard(
     limit: int = 10,
     db: Session = Depends(get_db)
@@ -19,7 +20,7 @@ def get_leaderboard(
     
     result = []
     for entry in entries:
-        result.append(schemas.LeaderboardEntry(
+        result.append(LeaderboardEntry(
             username=entry.user.username,
             points=entry.points,
             total_study_time=entry.total_study_time,

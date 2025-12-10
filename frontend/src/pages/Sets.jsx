@@ -243,7 +243,8 @@ export default function Sets() {
   const fetchSets = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/api/flashcards/sets')
+      // Use /my endpoint to get only current user's sets for "My Decks" page
+      const response = await api.get('/api/flashcards/sets/my')
       setSets(response.data)
     } catch (error) {
       toast.error('Failed to load flashcard sets')
