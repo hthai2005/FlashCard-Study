@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 from app.database import get_db
 from app import models, schemas, auth
@@ -164,4 +164,22 @@ def update_user(
     db.commit()
     db.refresh(user)
     return user
+
+@router.get("/sets", response_model=List[schemas.FlashcardSetResponse])
+def get_all_sets(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all flashcard sets (admin only) - for management purposes"""
+    query = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner))
+    sets = query.offset(skip).limit(limit).all()
+    
+    # Add username to each set
+    for set_item in sets:
+        if set_item.owner:
+            set_item.owner_username = set_item.owner.username
+    
+    return sets
 

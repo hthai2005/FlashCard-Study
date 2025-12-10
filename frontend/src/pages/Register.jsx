@@ -7,17 +7,25 @@ export default function Register() {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const { register } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (isLoading) return
+    
+    setIsLoading(true)
     try {
       await register(username, email, password)
       toast.success('Registration successful! Please login.')
       navigate('/login')
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Registration failed')
+      console.error('Registration error:', error)
+      const errorMessage = error.response?.data?.detail || error.message || 'Registration failed'
+      toast.error(errorMessage)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -62,13 +70,22 @@ export default function Register() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               required
+              minLength={6}
+              maxLength={72}
             />
+            {password.length > 0 && password.length < 6 && (
+              <p className="text-red-500 text-sm mt-1">Password must be at least 6 characters</p>
+            )}
+            {password.length > 72 && (
+              <p className="text-red-500 text-sm mt-1">Password cannot be longer than 72 characters</p>
+            )}
           </div>
           <button
             type="submit"
-            className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+            disabled={isLoading}
+            className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors"
           >
-            Register
+            {isLoading ? 'Registering...' : 'Register'}
           </button>
         </form>
         <div className="mt-4 space-y-3">

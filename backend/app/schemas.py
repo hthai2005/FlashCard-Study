@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
 
@@ -9,10 +9,20 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if len(v) < 6:
+            raise ValueError("Password must be at least 6 characters long")
+        if len(v.encode('utf-8')) > 72:
+            raise ValueError("Password cannot be longer than 72 bytes")
+        return v
 
 class UserResponse(UserBase):
     id: int
     is_active: bool
+    is_admin: bool
     created_at: datetime
     
     class Config:
@@ -51,9 +61,15 @@ class FlashcardSetBase(BaseModel):
 class FlashcardSetCreate(FlashcardSetBase):
     pass
 
+class FlashcardSetUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    is_public: Optional[bool] = None
+
 class FlashcardSetResponse(FlashcardSetBase):
     id: int
     owner_id: int
+    owner_username: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     
@@ -70,6 +86,12 @@ class StudyAnswer(BaseModel):
 
 class StudySessionCreate(BaseModel):
     set_id: int
+
+class StudySessionComplete(BaseModel):
+    cards_studied: int
+    cards_correct: int
+    cards_incorrect: int
+    duration_minutes: int
 
 class StudySessionResponse(BaseModel):
     id: int
@@ -93,6 +115,18 @@ class StudyProgress(BaseModel):
     daily_progress: int
     streak_days: int
 
+class StudySessionDataPoint(BaseModel):
+    date: str
+    cards_studied: int
+    cards_correct: int
+    accuracy: float
+    sessions_count: int
+
+class StudyActivityDataPoint(BaseModel):
+    date: str
+    cards_studied: int
+    intensity: int
+
 # Leaderboard schemas
 class LeaderboardEntry(BaseModel):
     username: str
@@ -115,6 +149,10 @@ class ImportRequest(BaseModel):
     file_content: str  # CSV or JSON content
 
 # Auth schemas
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
 class Token(BaseModel):
     access_token: str
     token_type: str

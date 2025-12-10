@@ -9,6 +9,19 @@ router = APIRouter()
 
 @router.post("/register", response_model=schemas.UserResponse)
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    # Validate password length (bcrypt limit is 72 bytes)
+    password_bytes = len(user.password.encode('utf-8'))
+    if password_bytes > 72:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password is too long. Maximum length is 72 bytes (approximately 72 ASCII characters or fewer for multi-byte characters)."
+        )
+    if len(user.password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 6 characters long"
+        )
+    
     # Check if username exists
     if auth.get_user_by_username(db, user.username):
         raise HTTPException(
@@ -23,7 +36,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered"
         )
     
-    # Create new user
+    # Create new user - get_password_hash will handle truncation if needed
     hashed_password = auth.get_password_hash(user.password)
     db_user = models.User(
         username=user.username,
