@@ -67,12 +67,14 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-background-light dark:bg-background-dark">
-      <AdminSidebar />
+    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark">
+      <AdminHeader pageTitle="Dashboard" />
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-y-auto">
-        <AdminHeader pageTitle="Dashboard" />
+      <div className="flex h-[calc(100vh-4rem)] grow">
+        <AdminSidebar />
+
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col overflow-y-auto">
 
         <div className="p-6 space-y-6">
           {/* Stats */}
@@ -274,7 +276,8 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-      </main>
+        </main>
+      </div>
     </div>
   )
 }

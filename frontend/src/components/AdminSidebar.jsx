@@ -19,8 +19,8 @@ export default function AdminSidebar() {
   }
 
   return (
-    <aside className="flex w-64 flex-col bg-white dark:bg-[#1A2831] border-r border-gray-200 dark:border-gray-700 h-screen sticky top-0">
-      <nav className="flex flex-col gap-2 p-4 grow">
+    <aside className="flex w-64 flex-col bg-white dark:bg-[#1A2831] border-r border-gray-200 dark:border-gray-700 h-full">
+      <nav className="flex flex-col gap-2 p-4 flex-1 overflow-y-auto">
         <Link
           to="/admin"
           className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer ${
@@ -67,10 +67,17 @@ export default function AdminSidebar() {
         </Link>
       </nav>
 
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+        <button
+          onClick={() => navigate('/sets')}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer w-full"
+        >
+          <span className="material-symbols-outlined">exit_to_app</span>
+          <p className="text-sm font-medium">Exit Admin</p>
+        </button>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer w-full"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer w-full"
         >
           <span className="material-symbols-outlined">logout</span>
           <p className="text-sm font-medium">Logout</p>
