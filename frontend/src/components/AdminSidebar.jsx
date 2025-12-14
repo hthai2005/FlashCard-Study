@@ -52,11 +52,7 @@ export default function AdminSidebar() {
           }`}
         >
           <span className="material-symbols-outlined">style</span>
-<<<<<<< HEAD
           <p className="text-sm font-medium">Bộ Thẻ</p>
-=======
-          <p className="text-sm font-medium">Quản Lý Bộ Thẻ</p>
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
         </Link>
         <Link
           to="/admin/moderation"

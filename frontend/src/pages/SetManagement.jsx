@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useNotifications } from '../contexts/NotificationContext'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import AdminSidebar from '../components/AdminSidebar'
@@ -8,6 +9,7 @@ import AdminHeader from '../components/AdminHeader'
 
 export default function SetManagement() {
   const { user, logout, loading: authLoading } = useAuth()
+  const { addNotification } = useNotifications()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [sets, setSets] = useState([])
@@ -20,6 +22,7 @@ export default function SetManagement() {
     reportedSets: 0
   })
   const setsPerPage = 5
+  const processedPendingSets = useRef(new Set()) // Track which pending sets we've already notified about
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -44,14 +47,14 @@ export default function SetManagement() {
               ...set,
               card_count: cardsRes.data.length || 0,
               creator: set.owner_username || 'Không xác định',
-              status: set.is_public ? 'Đã Duyệt' : 'Chờ Duyệt'
+              status: set.status || 'pending'
             }
           } catch {
             return {
               ...set,
               card_count: 0,
               creator: set.owner_username || 'Không xác định',
-              status: set.is_public ? 'Đã Duyệt' : 'Chờ Duyệt'
+              status: set.status || 'pending'
             }
           }
         })
@@ -60,13 +63,27 @@ export default function SetManagement() {
       setSets(setsWithCards)
       
       // Calculate stats
-      const pendingCount = setsWithCards.filter(s => s.status === 'Chờ Duyệt').length
+      const pendingCount = setsWithCards.filter(s => s.status === 'pending').length
       const reportedCount = 0 // Can be fetched from reports API
       
       setStats({
         pendingReview: pendingCount,
         totalSets: setsWithCards.length,
         reportedSets: reportedCount
+      })
+
+      // Create notifications for new pending sets (only once per set)
+      const pendingSets = setsWithCards.filter(s => s.status === 'pending')
+      pendingSets.forEach(set => {
+        if (!processedPendingSets.current.has(set.id)) {
+          addNotification({
+            type: 'warning',
+            title: 'Có bộ thẻ mới cần duyệt',
+            message: `Bộ thẻ "${set.title}" của "${set.creator}" đang chờ duyệt`,
+            action: { type: 'navigate', path: `/admin/sets/${set.id}` }
+          })
+          processedPendingSets.current.add(set.id)
+        }
       })
     } catch (error) {
       toast.error('Không thể tải danh sách bộ thẻ')
@@ -92,11 +109,7 @@ export default function SetManagement() {
   }
 
   const handleDelete = async (setId) => {
-<<<<<<< HEAD
-      if (window.confirm('Bạn có chắc muốn xóa bộ thẻ này?')) {
-=======
     if (window.confirm('Bạn có chắc muốn xóa bộ thẻ này?')) {
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
       try {
         await api.delete(`/api/flashcards/sets/${setId}`)
         toast.success('Đã xóa bộ thẻ thành công')
@@ -109,25 +122,42 @@ export default function SetManagement() {
 
   const handleApprove = async (setId) => {
     try {
-      await api.put(`/api/flashcards/sets/${setId}`, { is_public: true })
-<<<<<<< HEAD
+      await api.put(`/api/admin/sets/${setId}/approve`)
       toast.success('Đã duyệt bộ thẻ')
+      
+      // Find the set to get its title
+      const set = sets.find(s => s.id === setId)
+      
+      // Add notification
+      addNotification({
+        type: 'success',
+        title: 'Đã duyệt bộ thẻ',
+        message: `Bộ thẻ "${set?.title || 'Bộ thẻ'}" đã được duyệt thành công`,
+        action: { type: 'navigate', path: `/admin/sets/${setId}` }
+      })
+      
       fetchSets()
     } catch (error) {
       toast.error('Không thể duyệt bộ thẻ')
-=======
-      toast.success('Đã phê duyệt bộ thẻ')
-      fetchSets()
-    } catch (error) {
-      toast.error('Không thể phê duyệt bộ thẻ')
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
     }
   }
 
   const handleReject = async (setId) => {
     try {
-      await api.put(`/api/flashcards/sets/${setId}`, { is_public: false })
+      await api.put(`/api/admin/sets/${setId}/reject`)
       toast.success('Đã từ chối bộ thẻ')
+      
+      // Find the set to get its title
+      const set = sets.find(s => s.id === setId)
+      
+      // Add notification
+      addNotification({
+        type: 'warning',
+        title: 'Đã từ chối bộ thẻ',
+        message: `Bộ thẻ "${set?.title || 'Bộ thẻ'}" đã bị từ chối`,
+        action: { type: 'navigate', path: `/admin/sets/${setId}` }
+      })
+      
       fetchSets()
     } catch (error) {
       toast.error('Không thể từ chối bộ thẻ')
@@ -184,31 +214,19 @@ export default function SetManagement() {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-white/10 bg-white/5">
-<<<<<<< HEAD
               <p className="text-slate-400 text-base font-medium leading-normal">Chờ Duyệt</p>
-=======
-              <p className="text-slate-400 text-base font-medium leading-normal">Chờ Xem Xét</p>
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
               <p className="text-black dark:text-white tracking-light text-3xl font-bold leading-tight">
                 {stats.pendingReview}
               </p>
             </div>
             <div className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-white/10 bg-white/5">
-<<<<<<< HEAD
               <p className="text-slate-400 text-base font-medium leading-normal">Tổng Số Bộ</p>
-=======
-              <p className="text-slate-400 text-base font-medium leading-normal">Tổng Bộ Thẻ</p>
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
               <p className="text-black dark:text-white tracking-light text-3xl font-bold leading-tight">
                 {stats.totalSets.toLocaleString()}
               </p>
             </div>
             <div className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-white/10 bg-white/5">
-<<<<<<< HEAD
               <p className="text-slate-400 text-base font-medium leading-normal">Bộ Bị Báo Cáo</p>
-=======
-              <p className="text-slate-400 text-base font-medium leading-normal">Bộ Thẻ Bị Báo Cáo</p>
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
               <p className="text-black dark:text-white tracking-light text-3xl font-bold leading-tight">
                 {stats.reportedSets}
               </p>
@@ -245,11 +263,7 @@ export default function SetManagement() {
                 <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
                   add
                 </span>
-<<<<<<< HEAD
                 <span className="truncate">Thêm Bộ Mới</span>
-=======
-                <span className="truncate">Thêm Bộ Thẻ Mới</span>
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
               </button>
             </div>
 
@@ -268,11 +282,7 @@ export default function SetManagement() {
                         />
                       </th>
                       <th className="px-4 py-3 text-slate-400 w-2/6 text-sm font-medium leading-normal">
-<<<<<<< HEAD
                         Tiêu Đề Bộ Thẻ
-=======
-                        Tên Bộ Thẻ
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                       </th>
                       <th className="px-4 py-3 text-slate-400 w-1/6 text-sm font-medium leading-normal hidden md:table-cell">
                         Người Tạo
@@ -287,11 +297,7 @@ export default function SetManagement() {
                         Trạng Thái
                       </th>
                       <th className="px-4 py-3 text-slate-400 w-[120px] text-sm font-medium leading-normal">
-<<<<<<< HEAD
                         Hành Động
-=======
-                        Thao Tác
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                       </th>
                     </tr>
                   </thead>
@@ -328,29 +334,29 @@ export default function SetManagement() {
                           <td className="h-[72px] px-4 py-2 w-[120px] text-sm font-normal leading-normal">
                             <div
                               className={`flex items-center gap-2 text-sm font-medium rounded-full py-1 px-3 w-fit ${
-                                set.status === 'Đã Duyệt'
+                                set.status === 'approved'
                                   ? 'bg-green-500/10 text-green-400'
-                                  : set.status === 'Chờ Duyệt'
+                                  : set.status === 'pending'
                                   ? 'bg-yellow-500/10 text-yellow-400'
                                   : 'bg-red-500/10 text-red-400'
                               }`}
                             >
                               <span
                                 className={`h-2 w-2 rounded-full ${
-                                  set.status === 'Đã Duyệt'
+                                  set.status === 'approved'
                                     ? 'bg-green-400'
-                                    : set.status === 'Chờ Duyệt'
+                                    : set.status === 'pending'
                                     ? 'bg-yellow-400'
                                     : 'bg-red-400'
                                 }`}
                               ></span>
-                              {set.status === 'Approved' ? 'Đã Phê Duyệt' : set.status === 'Pending' ? 'Chờ Xem Xét' : 'Từ Chối'}
+                              {set.status === 'approved' ? 'Đã Duyệt' : set.status === 'pending' ? 'Chờ Duyệt' : 'Đã Từ Chối'}
                             </div>
                           </td>
                           <td className="h-[72px] px-4 py-2 w-[120px]">
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => navigate(`/sets/${set.id}`)}
+                                onClick={() => navigate(`/admin/sets/${set.id}`)}
                                 className="text-primary text-sm font-bold leading-normal tracking-[0.015em] cursor-pointer hover:underline"
                               >
                                 Xem
@@ -361,17 +367,13 @@ export default function SetManagement() {
                               >
                                 Xóa
                               </button>
-                              {set.status === 'Chờ Duyệt' && (
+                              {set.status === 'pending' && (
                                 <>
                                   <button
                                     onClick={() => handleApprove(set.id)}
                                     className="text-green-400 text-sm font-medium hover:underline"
                                   >
-<<<<<<< HEAD
                                     Duyệt
-=======
-                                    Phê Duyệt
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                                   </button>
                                   <button
                                     onClick={() => handleReject(set.id)}

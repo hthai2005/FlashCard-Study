@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useNotifications } from '../contexts/NotificationContext'
 import TopNav from '../components/TopNav'
 import api from '../services/api'
 import toast from 'react-hot-toast'
@@ -9,6 +10,7 @@ export default function Study() {
   const { setId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { addNotification } = useNotifications()
   const [cards, setCards] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showAnswer, setShowAnswer] = useState(false)
@@ -21,12 +23,77 @@ export default function Study() {
   const [userAnswer, setUserAnswer] = useState('')
   const [answerFeedback, setAnswerFeedback] = useState(null) // 'correct', 'incorrect', or null
   const [wrongAttempts, setWrongAttempts] = useState(0)
+  const [showStudyModeModal, setShowStudyModeModal] = useState(false)
+  const [hasProgress, setHasProgress] = useState(false)
+  const [studyProgress, setStudyProgress] = useState(null)
+  const [restartFromBeginning, setRestartFromBeginning] = useState(false)
+  const [initialCardsStudied, setInitialCardsStudied] = useState(0) // Số thẻ đã học trước đó
 
   useEffect(() => {
-    startSession()
-    fetchSetInfo()
-    fetchCards()
+    checkProgressAndShowModal()
   }, [setId])
+
+  const checkProgressAndShowModal = async () => {
+    try {
+      // Fetch set info first
+      const setInfoRes = await api.get(`/api/flashcards/sets/${setId}`)
+      setSetInfo(setInfoRes.data)
+      
+      // Get total cards count
+      const cardsRes = await api.get(`/api/flashcards/sets/${setId}/cards`)
+      setTotalCards(cardsRes.data.length)
+      
+      // Check progress
+      const progressRes = await api.get(`/api/study/progress/${setId}`).catch(() => null)
+      if (progressRes && progressRes.data) {
+        const progress = progressRes.data
+        // If user has studied at least one card, show modal
+        if (progress.cards_studied > 0) {
+          setHasProgress(true)
+          setStudyProgress(progress)
+          setShowStudyModeModal(true)
+          return // Don't fetch cards yet, wait for user choice
+        }
+      }
+      
+      // No progress, start normally
+      startSession()
+      fetchCards(false) // false = don't restart from beginning
+    } catch (error) {
+      console.error('Error checking progress:', error)
+      toast.error('Không thể tải thông tin bộ thẻ')
+    }
+  }
+
+  const handleContinueStudy = () => {
+    setShowStudyModeModal(false)
+    setRestartFromBeginning(false)
+    // Set initial cards studied from previous progress
+    if (studyProgress) {
+      setInitialCardsStudied(studyProgress.cards_studied || 0)
+    }
+    startSession()
+    fetchCards(false) // Continue from where left off
+  }
+
+  const handleRestartFromBeginning = async () => {
+    setShowStudyModeModal(false)
+    setRestartFromBeginning(true)
+    // Reset initial cards studied to 0 when restarting
+    setInitialCardsStudied(0)
+    
+    // Reset study progress on backend
+    try {
+      await api.post(`/api/study/sets/${setId}/reset`)
+      toast.success('Đã reset tiến độ học tập')
+    } catch (error) {
+      console.error('Error resetting progress:', error)
+      toast.error('Không thể reset tiến độ học tập')
+    }
+    
+    startSession()
+    fetchCards(true) // true = restart from beginning
+  }
 
   // Reset state when card changes
   useEffect(() => {
@@ -47,60 +114,74 @@ export default function Study() {
     }
   }
 
-  const fetchSetInfo = async () => {
+  const fetchCards = async (restartFromBeginning = false) => {
     try {
-      const response = await api.get(`/api/flashcards/sets/${setId}`)
-      setSetInfo(response.data)
-      
-      // Get total cards count
-      const cardsRes = await api.get(`/api/flashcards/sets/${setId}/cards`)
-      setTotalCards(cardsRes.data.length)
-    } catch (error) {
-      toast.error('Không thể tải thông tin bộ thẻ')
-    }
-  }
-
-  const fetchCards = async () => {
-    try {
-      const response = await api.get(`/api/study/sets/${setId}/due`)
-      if (response.data && response.data.length > 0) {
-        setCards(response.data)
-        // Update totalCards if not already set
-        if (totalCards === 0) {
-          setTotalCards(response.data.length)
+      if (restartFromBeginning) {
+        // Get all cards from the set (restart from beginning)
+        const allCardsRes = await api.get(`/api/flashcards/sets/${setId}/cards`)
+        if (allCardsRes.data && allCardsRes.data.length > 0) {
+          // Convert to FlashcardWithProgress format
+          const cardsWithProgress = allCardsRes.data.map(card => ({
+            id: card.id,
+            set_id: card.set_id,
+            front: card.front,
+            back: card.back,
+            created_at: card.created_at,
+            ease_factor: 2.5,
+            interval: 1,
+            next_review_date: null,
+            total_reviews: 0,
+            correct_count: 0,
+            incorrect_count: 0
+          }))
+          setCards(cardsWithProgress)
+          // Update totalCards
+          setTotalCards(allCardsRes.data.length)
+        } else {
+          setCards([])
         }
       } else {
-        // If no cards due, try to get all cards from the set
-        try {
-          const allCardsRes = await api.get(`/api/flashcards/sets/${setId}/cards`)
-          if (allCardsRes.data && allCardsRes.data.length > 0) {
-            // Convert to FlashcardWithProgress format
-            const cardsWithProgress = allCardsRes.data.map(card => ({
-              id: card.id,
-              set_id: card.set_id,
-              front: card.front,
-              back: card.back,
-              created_at: card.created_at,
-              ease_factor: 2.5,
-              interval: 1,
-              next_review_date: null,
-              total_reviews: 0,
-              correct_count: 0,
-              incorrect_count: 0
-            }))
-            setCards(cardsWithProgress)
-            // Update totalCards
-            setTotalCards(allCardsRes.data.length)
-          } else {
+        // Get cards due (continue from where left off)
+        const response = await api.get(`/api/study/sets/${setId}/due`)
+        if (response.data && response.data.length > 0) {
+          setCards(response.data)
+          // Update totalCards if not already set
+          if (totalCards === 0) {
+            setTotalCards(response.data.length)
+          }
+        } else {
+          // If no cards due, try to get all cards from the set
+          try {
+            const allCardsRes = await api.get(`/api/flashcards/sets/${setId}/cards`)
+            if (allCardsRes.data && allCardsRes.data.length > 0) {
+              // Convert to FlashcardWithProgress format
+              const cardsWithProgress = allCardsRes.data.map(card => ({
+                id: card.id,
+                set_id: card.set_id,
+                front: card.front,
+                back: card.back,
+                created_at: card.created_at,
+                ease_factor: 2.5,
+                interval: 1,
+                next_review_date: null,
+                total_reviews: 0,
+                correct_count: 0,
+                incorrect_count: 0
+              }))
+              setCards(cardsWithProgress)
+              // Update totalCards
+              setTotalCards(allCardsRes.data.length)
+            } else {
+              setCards([])
+            }
+          } catch (err) {
+            console.error('Error fetching all cards:', err)
             setCards([])
           }
-        } catch (err) {
-          console.error('Error fetching all cards:', err)
-          setCards([])
         }
       }
     } catch (error) {
-      console.error('Error fetching due cards:', error)
+      console.error('Error fetching cards:', error)
       toast.error('Không thể tải flashcard')
       setCards([])
     }
@@ -210,14 +291,24 @@ export default function Study() {
         })
       }
       
-      toast.success(`Hoàn thành phiên học! Bạn đã học ${finalStats.studied}/${cards.length} thẻ.`)
-<<<<<<< HEAD
-=======
+      const totalCardsCount = totalCards > 0 ? totalCards : cards.length
+      const totalStudiedInSession = initialCardsStudied + finalStats.studied
+      const percentage = totalCardsCount > 0 ? Math.round((totalStudiedInSession / totalCardsCount) * 100) : 0
+      
+      toast.success(`Hoàn thành phiên học! Bạn đã học ${totalStudiedInSession}/${totalCardsCount} thẻ.`)
+      
+      // Add notification
+      addNotification({
+        type: 'success',
+        title: 'Hoàn thành phiên học',
+        message: `Bạn đã học ${totalStudiedInSession}/${totalCardsCount} thẻ (${percentage}%) trong bộ "${setInfo?.title || 'Bộ thẻ'}"`,
+        action: { type: 'navigate', path: `/sets/${setId}` }
+      })
+      
       // Trigger event to refresh other pages
       window.dispatchEvent(new CustomEvent('studyProgressUpdated', { 
         detail: { set_id: parseInt(setId) } 
       }))
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
       setTimeout(() => {
         navigate('/dashboard')
       }, 2000)
@@ -236,10 +327,11 @@ export default function Study() {
     
     // Use totalCards if available, otherwise use cards.length
     const totalCardsCount = totalCards > 0 ? totalCards : cards.length
+    const totalStudied = initialCardsStudied + stats.studied
     
-    if (stats.studied > 0 && totalCardsCount > 0) {
-      const percentage = Math.round((stats.studied / totalCardsCount) * 100)
-      progressMessage = `Bạn đã học ${stats.studied}/${totalCardsCount} thẻ (${percentage}%). Bạn có muốn kết thúc phiên học này?`
+    if (totalStudied > 0 && totalCardsCount > 0) {
+      const percentage = Math.round((totalStudied / totalCardsCount) * 100)
+      progressMessage = `Bạn đã học ${totalStudied}/${totalCardsCount} thẻ (${percentage}%). Bạn có muốn kết thúc phiên học này?`
     }
     
     if (window.confirm(progressMessage)) {
@@ -251,7 +343,54 @@ export default function Study() {
     }
   }
 
-  if (cards.length === 0) {
+  // Show modal if there's progress and user hasn't chosen yet
+  if (showStudyModeModal && hasProgress && studyProgress) {
+    const progressPercentage = studyProgress.total_cards > 0 
+      ? Math.round((studyProgress.cards_studied / studyProgress.total_cards) * 100) 
+      : 0
+    
+    return (
+      <div className="flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark">
+        <TopNav />
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-[#1c2327] rounded-xl p-8 max-w-md w-full mx-4 border border-slate-200 dark:border-[#283339]">
+              <div className="flex flex-col gap-6">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                    Bạn đã học dở bộ thẻ này
+                  </h2>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Bạn đã học {studyProgress.cards_studied}/{studyProgress.total_cards} thẻ ({progressPercentage}%)
+                  </p>
+                </div>
+                
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={handleContinueStudy}
+                    className="flex items-center justify-center gap-3 rounded-lg h-14 px-6 bg-primary text-white text-base font-bold transition-colors hover:bg-primary/90"
+                  >
+                    <span className="material-symbols-outlined">play_arrow</span>
+                    <span>Tiếp Tục Học</span>
+                  </button>
+                  
+                  <button
+                    onClick={handleRestartFromBeginning}
+                    className="flex items-center justify-center gap-3 rounded-lg h-14 px-6 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <span className="material-symbols-outlined">refresh</span>
+                    <span>Học Lại Từ Đầu</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (cards.length === 0 && !showStudyModeModal) {
     return (
       <div className="flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark">
         <TopNav />
@@ -262,11 +401,7 @@ export default function Study() {
               onClick={() => navigate('/sets')}
               className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg"
             >
-<<<<<<< HEAD
               Quay Lại Danh Sách
-=======
-              Về Bộ Thẻ
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
             </button>
           </div>
         </main>
@@ -277,7 +412,9 @@ export default function Study() {
   const currentCard = cards[currentIndex]
   // Use totalCards if available, otherwise use cards.length for progress calculation
   const totalCardsCount = totalCards > 0 ? totalCards : cards.length
-  const progressPercentage = totalCardsCount > 0 ? (stats.studied / totalCardsCount) * 100 : 0
+  // Calculate total cards studied (previous + current session)
+  const totalStudied = initialCardsStudied + stats.studied
+  const progressPercentage = totalCardsCount > 0 ? (totalStudied / totalCardsCount) * 100 : 0
 
   return (
     <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark">
@@ -321,7 +458,7 @@ export default function Study() {
                 ></div>
               </div>
               <p className="text-gray-500 dark:text-gray-400 text-xs">
-                {stats.studied}/{totalCardsCount} thẻ đã ôn tập
+                {totalStudied}/{totalCardsCount} thẻ đã ôn tập
               </p>
             </div>
           </div>
@@ -423,11 +560,7 @@ export default function Study() {
           {nextReview !== null && (
             <div>
               <p className="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal text-center">
-<<<<<<< HEAD
                 Lần ôn tập tiếp theo: ~{nextReview} {nextReview === 1 ? 'ngày' : 'ngày'}
-=======
-                Ôn tập lại sau: ~{nextReview} {nextReview === 1 ? 'ngày' : 'ngày'}
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
               </p>
             </div>
           )}

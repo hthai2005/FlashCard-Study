@@ -228,16 +228,6 @@ export default function Profile() {
               </a>
               <div className="border-t border-slate-200 dark:border-[#283339] my-2"></div>
               <a
-                onClick={(e) => {
-                  e.preventDefault()
-                  toast.info('Trung tâm trợ giúp sẽ sớm có mặt!')
-                }}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#283339] text-slate-700 dark:text-white transition-colors cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-2xl">help</span>
-                <p className="text-sm font-medium leading-normal">Trợ Giúp</p>
-              </a>
-              <a
                 onClick={handleLogout}
                 className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors cursor-pointer"
               >

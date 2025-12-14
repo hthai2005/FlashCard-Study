@@ -2,17 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.database import engine, Base
-from app.routers import auth, flashcards, study, leaderboard, ai, admin
+from app.routers import auth, flashcards, study, leaderboard, ai, admin, reports
 from pathlib import Path
-<<<<<<< HEAD
 from sqlalchemy import text, inspect
-=======
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
-<<<<<<< HEAD
 # Migration: Add avatar_url column if not exists
 def migrate_add_avatar_url():
     """Thêm cột avatar_url vào bảng users nếu chưa có"""
@@ -52,11 +48,112 @@ def migrate_add_avatar_url():
         print(f"⚠️  Lỗi khi migration avatar_url: {e}")
         # Không throw exception để app vẫn chạy được
 
-# Chạy migration
-migrate_add_avatar_url()
+# Migration: Add status column to flashcard_sets if not exists
+def migrate_add_status():
+    """Thêm cột status vào bảng flashcard_sets nếu chưa có"""
+    try:
+        if not str(engine.url).startswith("sqlite"):
+            with engine.connect() as conn:
+                check_query = text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name='flashcard_sets' AND column_name='status';
+                """)
+                result = conn.execute(check_query)
+                
+                if result.fetchone() is None:
+                    alter_query = text("ALTER TABLE flashcard_sets ADD COLUMN status VARCHAR(20) DEFAULT 'pending';")
+                    conn.execute(alter_query)
+                    # Update existing records to 'approved'
+                    update_query = text("UPDATE flashcard_sets SET status = 'approved' WHERE status IS NULL;")
+                    conn.execute(update_query)
+                    conn.commit()
+                    print("✅ Đã thêm cột status vào bảng flashcard_sets")
+                else:
+                    print("ℹ️  Cột status đã tồn tại trong database")
+        else:
+            inspector = inspect(engine)
+            columns = [col['name'] for col in inspector.get_columns('flashcard_sets')]
+            if 'status' not in columns:
+                with engine.connect() as conn:
+                    alter_query = text("ALTER TABLE flashcard_sets ADD COLUMN status VARCHAR(20) DEFAULT 'pending';")
+                    conn.execute(alter_query)
+                    update_query = text("UPDATE flashcard_sets SET status = 'approved' WHERE status IS NULL;")
+                    conn.execute(update_query)
+                    conn.commit()
+                    print("✅ Đã thêm cột status vào bảng flashcard_sets (SQLite)")
+            else:
+                print("ℹ️  Cột status đã tồn tại trong database (SQLite)")
+    except Exception as e:
+        print(f"⚠️  Lỗi khi migration status: {e}")
 
-=======
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
+# Migration: Create reports table if not exists
+def migrate_create_reports_table():
+    """Tạo bảng reports nếu chưa có"""
+    try:
+        if not str(engine.url).startswith("sqlite"):
+            with engine.connect() as conn:
+                check_query = text("""
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_name='reports';
+                """)
+                result = conn.execute(check_query)
+                
+                if result.fetchone() is None:
+                    create_query = text("""
+                        CREATE TABLE reports (
+                            id SERIAL PRIMARY KEY,
+                            report_type VARCHAR(20) NOT NULL,
+                            reported_item_id INTEGER NOT NULL,
+                            reporter_id INTEGER NOT NULL REFERENCES users(id),
+                            reason VARCHAR(50) NOT NULL,
+                            description TEXT,
+                            status VARCHAR(20) DEFAULT 'pending',
+                            admin_notes TEXT,
+                            resolved_by INTEGER REFERENCES users(id),
+                            resolved_at TIMESTAMP WITH TIME ZONE,
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                        );
+                    """)
+                    conn.execute(create_query)
+                    conn.commit()
+                    print("✅ Đã tạo bảng reports")
+                else:
+                    print("ℹ️  Bảng reports đã tồn tại")
+        else:
+            inspector = inspect(engine)
+            tables = inspector.get_table_names()
+            if 'reports' not in tables:
+                with engine.connect() as conn:
+                    create_query = text("""
+                        CREATE TABLE reports (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            report_type VARCHAR(20) NOT NULL,
+                            reported_item_id INTEGER NOT NULL,
+                            reporter_id INTEGER NOT NULL REFERENCES users(id),
+                            reason VARCHAR(50) NOT NULL,
+                            description TEXT,
+                            status VARCHAR(20) DEFAULT 'pending',
+                            admin_notes TEXT,
+                            resolved_by INTEGER REFERENCES users(id),
+                            resolved_at TIMESTAMP,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        );
+                    """)
+                    conn.execute(create_query)
+                    conn.commit()
+                    print("✅ Đã tạo bảng reports (SQLite)")
+            else:
+                print("ℹ️  Bảng reports đã tồn tại (SQLite)")
+    except Exception as e:
+        print(f"⚠️  Lỗi khi migration reports table: {e}")
+
+# Chạy migrations
+migrate_add_avatar_url()
+migrate_add_status()
+migrate_create_reports_table()
+
 # Create uploads directory if it doesn't exist
 uploads_dir = Path("uploads/avatars")
 uploads_dir.mkdir(parents=True, exist_ok=True)
@@ -93,6 +190,7 @@ app.include_router(study.router, prefix="/api/study", tags=["Study"])
 app.include_router(leaderboard.router, prefix="/api/leaderboard", tags=["Leaderboard"])
 app.include_router(ai.router, prefix="/api/ai", tags=["AI"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
+app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 
 # Mount static files for avatar uploads
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { NotificationProvider } from './contexts/NotificationContext'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
@@ -57,9 +58,10 @@ function AdminRoute({ children }) {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="min-h-screen bg-background-light dark:bg-background-dark" style={{ backgroundColor: '#f6f6f8' }}>
-          <Routes>
+      <NotificationProvider>
+        <Router>
+          <div className="min-h-screen bg-background-light dark:bg-background-dark" style={{ backgroundColor: '#f6f6f8' }}>
+            <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -84,10 +86,11 @@ function App() {
                 </StudyGuard>
               }
             />
-          </Routes>
-          <Toaster position="top-right" />
-        </div>
-      </Router>
+            </Routes>
+            <Toaster position="top-right" />
+          </div>
+        </Router>
+      </NotificationProvider>
     </AuthProvider>
   )
 }

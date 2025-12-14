@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useNotifications } from '../contexts/NotificationContext'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import AdminSidebar from '../components/AdminSidebar'
@@ -7,6 +8,7 @@ import AdminHeader from '../components/AdminHeader'
 
 export default function ContentModeration() {
   const { user, loading: authLoading } = useAuth()
+  const { addNotificationForUser } = useNotifications()
   const [loading, setLoading] = useState(true)
   const [reports, setReports] = useState([])
   const [selectedReport, setSelectedReport] = useState(null)
@@ -17,96 +19,97 @@ export default function ContentModeration() {
   const [editingCards, setEditingCards] = useState([])
 
   useEffect(() => {
-    if (user && !authLoading) {
+    if (user && !authLoading && user.is_admin) {
       fetchReports()
     }
   }, [user, authLoading, activeTab])
 
   const fetchReports = async () => {
     try {
-      // Mock data for now - in production, this would fetch from API
-      const mockReports = [
-        {
-          id: 1,
-          setTitle: 'Advanced Spanish Vocabulary',
-          setCreator: 'CreatorPro',
-          reportedBy: 'JaneDoe',
-          reportDate: '2023-10-26',
-          reason: 'Nội Dung Không Phù Hợp',
-          priority: 'high',
-          status: 'pending',
-          comment: 'Bộ thẻ này chứa ngôn ngữ xúc phạm và từ ngữ không phù hợp trong nhiều thẻ. Nên xóa ngay lập tức.',
-          cards: [
-            { id: 1, front: 'El pan', back: 'Bread', flagged: false },
-            { id: 2, front: 'Una palabra ofensiva', back: 'An offensive word', flagged: true },
-            { id: 3, front: 'La manzana', back: 'Apple', flagged: false }
-          ]
-        },
-        {
-          id: 2,
-          setTitle: 'WWII History Facts',
-          setCreator: 'HistoryBuff',
-          reportedBy: 'JohnSmith',
-          reportDate: '2023-10-25',
-          reason: 'Thông Tin Sai Lệch',
-          priority: 'medium',
-          status: 'in_review',
-          comment: 'Một số sự kiện lịch sử có vẻ không chính xác.',
-          cards: [
-            { id: 1, front: 'WWII Start Date', back: '1939', flagged: false },
-            { id: 2, front: 'WWII End Date', back: '1945', flagged: false }
-          ]
-        },
-        {
-          id: 3,
-          setTitle: 'Calculus 101 Formulas',
-          setCreator: 'MathTeacher',
-          reportedBy: 'User12345',
-          reportDate: '2023-10-24',
-          reason: 'Spam',
-          priority: 'low',
-          status: 'new',
-          comment: 'Nội dung này có vẻ là spam.',
-          cards: [
-            { id: 1, front: 'Derivative', back: 'd/dx', flagged: false }
-          ]
-        },
-        {
-          id: 4,
-          setTitle: 'Organic Chemistry Reactions',
-          setCreator: 'ChemStudent',
-          reportedBy: 'AcademicWatch',
-          reportDate: '2023-10-23',
-          reason: 'Vi Phạm Bản Quyền',
-          priority: 'low',
-          status: 'new',
-          comment: 'Nội dung có vẻ được sao chép từ tài liệu có bản quyền.',
-          cards: [
-            { id: 1, front: 'Reaction 1', back: 'Product 1', flagged: false }
-          ]
+      setLoading(true)
+      // Fetch from API with status filter
+      const statusFilter = activeTab === 'pending' ? 'pending' : activeTab === 'resolved' ? 'resolved' : null
+      const response = await api.get('/api/reports/admin', {
+        params: {
+          status: statusFilter,
+          limit: 100
         }
-      ]
-
-      // Filter by active tab
-      let filteredReports = mockReports
-      if (activeTab === 'pending') {
-        filteredReports = mockReports.filter(r => r.status === 'pending' || r.status === 'new' || r.status === 'in_review')
-      } else if (activeTab === 'resolved') {
-        filteredReports = mockReports.filter(r => r.status === 'resolved')
-      }
-
-      setReports(filteredReports)
+      })
       
-      // Auto-select first report if available
-      if (filteredReports.length > 0 && !selectedReport) {
-        setSelectedReport(filteredReports[0])
+      const reportsData = response.data || []
+      
+      // Fetch additional info for each report (deck/card details)
+      const reportsWithDetails = await Promise.all(
+        reportsData.map(async (report) => {
+          try {
+            if (report.report_type === 'deck') {
+              const deckRes = await api.get(`/api/flashcards/sets/${report.reported_item_id}`).catch(() => null)
+              const cardsRes = await api.get(`/api/flashcards/sets/${report.reported_item_id}/cards`).catch(() => ({ data: [] }))
+              return {
+                ...report,
+                itemTitle: deckRes?.data?.title || 'Unknown Deck',
+                itemDescription: deckRes?.data?.description || '',
+                itemOwner: deckRes?.data?.owner_username || 'Unknown',
+                itemOwnerId: deckRes?.data?.owner_id || null,
+                cards: cardsRes.data || []
+              }
+            } else {
+              // Card report - fetch card and deck info
+              const cardRes = await api.get(`/api/flashcards/cards/${report.reported_item_id}`).catch(() => null)
+              if (cardRes?.data) {
+                const deckRes = await api.get(`/api/flashcards/sets/${cardRes.data.set_id}`).catch(() => null)
+                return {
+                  ...report,
+                  itemTitle: `${cardRes.data.front} / ${cardRes.data.back}`,
+                  itemDescription: `Card in deck: ${deckRes?.data?.title || 'Unknown'}`,
+                  itemOwner: deckRes?.data?.owner_username || 'Unknown',
+                  itemOwnerId: deckRes?.data?.owner_id || null,
+                  cards: [cardRes.data]
+                }
+              }
+            return {
+              ...report,
+              itemTitle: 'Unknown Card',
+              itemDescription: '',
+              itemOwner: 'Unknown',
+              itemOwnerId: null,
+              cards: []
+            }
+            }
+          } catch (error) {
+            console.error(`Error fetching details for report ${report.id}:`, error)
+            return {
+              ...report,
+              itemTitle: 'Unknown',
+              itemDescription: '',
+              itemOwner: 'Unknown',
+              itemOwnerId: null,
+              cards: []
+            }
+          }
+        })
+      )
+
+      setReports(reportsWithDetails)
+      
+      // Auto-select first report if available and no selection
+      if (reportsWithDetails.length > 0 && !selectedReport) {
+        setSelectedReport(reportsWithDetails[0])
+      } else if (selectedReport) {
+        // Update selected report if it still exists
+        const updatedSelected = reportsWithDetails.find(r => r.id === selectedReport.id)
+        if (updatedSelected) {
+          setSelectedReport(updatedSelected)
+        } else {
+          setSelectedReport(reportsWithDetails[0] || null)
+        }
       }
     } catch (error) {
-<<<<<<< HEAD
-      toast.error('Không thể tải báo cáo')
-=======
-      toast.error('Không thể tải danh sách báo cáo')
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
+      console.error('Error fetching reports:', error)
+      const errorMessage = error.response?.data?.detail || error.message || 'Không thể tải báo cáo'
+      toast.error(errorMessage)
+      setReports([])
+      setSelectedReport(null)
     } finally {
       setLoading(false)
     }
@@ -117,45 +120,95 @@ export default function ContentModeration() {
     setModeratorNotes('')
   }
 
-  const handleApprove = async () => {
+  const handleResolve = async () => {
     if (!selectedReport) return
     
+    const action = selectedReport.report_type === 'deck' ? 'delete_deck' : 'delete_card'
+    const confirmMessage = selectedReport.report_type === 'deck' 
+      ? 'Bạn có chắc muốn xóa deck này? Hành động này sẽ xóa toàn bộ deck và không thể hoàn tác.'
+      : 'Bạn có chắc muốn xóa card này? Hành động này không thể hoàn tác.'
+    
+    if (!window.confirm(confirmMessage)) {
+      return
+    }
+    
     try {
-      // In production, this would call an API
-<<<<<<< HEAD
-      toast.success('Đã duyệt báo cáo. Nội dung đã được giữ lại.')
-=======
-      toast.success('Đã phê duyệt báo cáo. Nội dung đã được giữ lại.')
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
-      setReports(prev => prev.filter(r => r.id !== selectedReport.id))
+      await api.put(`/api/reports/admin/${selectedReport.id}/resolve`, {
+        action: action,
+        admin_notes: moderatorNotes.trim() || null
+      })
+      
+      // Gửi notification cho người báo cáo (reporter)
+      if (selectedReport.reporter_id) {
+        addNotificationForUser(selectedReport.reporter_id, {
+          type: 'success',
+          title: 'Báo cáo đã được xử lý',
+          message: `Admin đã xóa nội dung bạn vừa báo cáo: ${selectedReport.itemTitle || 'Nội dung vi phạm'}`,
+          action: {
+            type: 'navigate',
+            path: '/sets'
+          }
+        })
+      }
+      
+      // Gửi notification cho chủ sở hữu nội dung (owner) - chỉ khi bị xóa
+      if (selectedReport.itemOwnerId) {
+        const reasonText = moderatorNotes.trim() || 'vi phạm quy định của cộng đồng'
+        addNotificationForUser(selectedReport.itemOwnerId, {
+          type: 'error',
+          title: 'Nội dung của bạn đã bị xóa',
+          message: `Nội dung "${selectedReport.itemTitle || 'của bạn'}" đã bị xóa vì: ${reasonText}`,
+          action: {
+            type: 'navigate',
+            path: '/sets'
+          }
+        })
+      }
+      
+      toast.success('Đã xử lý báo cáo và xóa nội dung vi phạm')
       setSelectedReport(null)
+      setModeratorNotes('')
       fetchReports()
     } catch (error) {
-<<<<<<< HEAD
-      toast.error('Không thể duyệt báo cáo')
-=======
-      toast.error('Không thể phê duyệt báo cáo')
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
+      console.error('Error resolving report:', error)
+      toast.error(error.response?.data?.detail || 'Không thể xử lý báo cáo')
     }
   }
 
   const handleReject = async () => {
     if (!selectedReport) return
     
-    if (window.confirm('Bạn có chắc muốn từ chối và xóa nội dung này?')) {
-      try {
-        // In production, this would call an API to delete the set
-<<<<<<< HEAD
-        toast.success('Đã xóa nội dung.')
-=======
-        toast.success('Nội dung đã được xóa.')
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
-        setReports(prev => prev.filter(r => r.id !== selectedReport.id))
-        setSelectedReport(null)
-        fetchReports()
-      } catch (error) {
-        toast.error('Không thể từ chối nội dung')
+    if (!window.confirm('Bạn có chắc muốn từ chối báo cáo này? Nội dung sẽ được giữ lại.')) {
+      return
+    }
+    
+    try {
+      await api.put(`/api/reports/admin/${selectedReport.id}/reject`, {
+        admin_notes: moderatorNotes.trim() || null
+      })
+      
+      // Gửi notification cho người báo cáo (reporter) - báo cáo bị từ chối
+      if (selectedReport.reporter_id) {
+        addNotificationForUser(selectedReport.reporter_id, {
+          type: 'info',
+          title: 'Báo cáo đã bị từ chối',
+          message: `Báo cáo của bạn về "${selectedReport.itemTitle || 'nội dung'}" đã bị từ chối. Nội dung không vi phạm quy định.`,
+          action: {
+            type: 'navigate',
+            path: '/sets'
+          }
+        })
       }
+      
+      // KHÔNG gửi notification cho owner khi báo cáo bị từ chối (vì nội dung không bị xóa)
+      
+      toast.success('Đã từ chối báo cáo. Nội dung được giữ lại.')
+      setSelectedReport(null)
+      setModeratorNotes('')
+      fetchReports()
+    } catch (error) {
+      console.error('Error rejecting report:', error)
+      toast.error(error.response?.data?.detail || 'Không thể từ chối báo cáo')
     }
   }
 
@@ -201,19 +254,30 @@ export default function ContentModeration() {
     return badges[priority] || badges.low
   }
 
+  const getReasonLabel = (reason) => {
+    const labels = {
+      'inappropriate': 'Nội dung không phù hợp',
+      'copyright': 'Vi phạm bản quyền',
+      'spam': 'Spam/Quảng cáo',
+      'misinformation': 'Nội dung sai lệch',
+      'other': 'Khác'
+    }
+    return labels[reason] || reason
+  }
+
   const getStatusBadge = (status) => {
     const badges = {
-      pending: { bg: 'bg-red-500/20', text: 'text-red-500', label: 'Ưu Tiên Cao' },
-      in_review: { bg: 'bg-yellow-500/20', text: 'text-yellow-500', label: 'Đang Xem Xét' },
-      new: { bg: 'bg-gray-500/20', text: 'text-gray-500', label: 'Mới' },
-      resolved: { bg: 'bg-green-500/20', text: 'text-green-500', label: 'Đã Xử Lý' }
+      pending: { bg: 'bg-red-500/20', text: 'text-red-500', label: 'Chờ Xử Lý' },
+      resolved: { bg: 'bg-green-500/20', text: 'text-green-500', label: 'Đã Xử Lý' },
+      rejected: { bg: 'bg-gray-500/20', text: 'text-gray-500', label: 'Đã Từ Chối' }
     }
-    return badges[status] || badges.new
+    return badges[status] || badges.pending
   }
 
   const filteredReports = reports.filter(report =>
-    report.setTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    report.reportedBy?.toLowerCase().includes(searchQuery.toLowerCase())
+    report.itemTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    report.reporter_username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    report.itemOwner?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   if (authLoading || loading) {
@@ -264,11 +328,7 @@ export default function ContentModeration() {
                   }`}
                 >
                   <p className={`text-sm ${activeTab === 'pending' ? 'font-bold text-primary' : 'font-medium'}`}>
-<<<<<<< HEAD
                     Chờ Duyệt
-=======
-                    Chờ Xem Xét
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                   </p>
                 </a>
                 <a
@@ -350,18 +410,20 @@ export default function ContentModeration() {
                             isSelected ? 'font-bold' : 'font-semibold'
                           } text-gray-900 dark:text-white`}
                         >
-                          {report.setTitle}
+                          {report.itemTitle || 'Unknown'}
                         </h3>
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.bg} ${badge.text}`}>
                           {badge.label}
                         </span>
                       </div>
                       <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                        Báo cáo vì: <span className="font-medium">{report.reason}</span>
+                        Loại: <span className="font-medium">{report.report_type === 'deck' ? 'Deck' : 'Card'}</span>
+                        {' • '}
+                        Lý do: <span className="font-medium">{getReasonLabel(report.reason)}</span>
                       </p>
                       <div className="mt-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                        <span>Báo cáo bởi: {report.reportedBy}</span>
-                        <span>{formatDate(report.reportDate)}</span>
+                        <span>Báo cáo bởi: {report.reporter_username || 'Unknown'}</span>
+                        <span>{formatDate(report.created_at)}</span>
                       </div>
                     </div>
                   )
@@ -380,33 +442,53 @@ export default function ContentModeration() {
                   <div className="mt-3 rounded-lg border border-gray-200/10 bg-background-light p-4 dark:border-white/10 dark:bg-background-dark">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-500 dark:text-gray-400">Bộ Thẻ Bị Báo Cáo</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{selectedReport.setTitle}</p>
+                        <p className="text-gray-500 dark:text-gray-400">
+                          {selectedReport.report_type === 'deck' ? 'Deck Bị Báo Cáo' : 'Card Bị Báo Cáo'}
+                        </p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{selectedReport.itemTitle || 'Unknown'}</p>
                       </div>
                       <div>
                         <p className="text-gray-500 dark:text-gray-400">Người Tạo</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{selectedReport.setCreator}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{selectedReport.itemOwner || 'Unknown'}</p>
                       </div>
                       <div>
                         <p className="text-gray-500 dark:text-gray-400">Báo Cáo Bởi</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{selectedReport.reportedBy}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{selectedReport.reporter_username || 'Unknown'}</p>
                       </div>
                       <div>
                         <p className="text-gray-500 dark:text-gray-400">Ngày Báo Cáo</p>
                         <p className="font-semibold text-gray-900 dark:text-white">
-                          {formatDate(selectedReport.reportDate)}
+                          {formatDate(selectedReport.created_at)}
                         </p>
                       </div>
                       <div className="col-span-2">
                         <p className="text-gray-500 dark:text-gray-400">Lý Do</p>
-                        <p className="font-semibold text-red-500">{selectedReport.reason}</p>
+                        <p className="font-semibold text-red-500">{getReasonLabel(selectedReport.reason)}</p>
                       </div>
-                      <div className="col-span-2">
-                        <p className="text-gray-500 dark:text-gray-400">Bình Luận Của Người Báo Cáo</p>
-                        <p className="rounded bg-gray-100 p-2 italic dark:bg-gray-800/50 text-gray-900 dark:text-white">
-                          "{selectedReport.comment}"
-                        </p>
-                      </div>
+                      {selectedReport.description && (
+                        <div className="col-span-2">
+                          <p className="text-gray-500 dark:text-gray-400">Mô Tả Chi Tiết</p>
+                          <p className="rounded bg-gray-100 p-2 italic dark:bg-gray-800/50 text-gray-900 dark:text-white">
+                            "{selectedReport.description}"
+                          </p>
+                        </div>
+                      )}
+                      {selectedReport.admin_notes && (
+                        <div className="col-span-2">
+                          <p className="text-gray-500 dark:text-gray-400">Ghi Chú Của Admin</p>
+                          <p className="rounded bg-blue-100 p-2 italic dark:bg-blue-900/50 text-gray-900 dark:text-white">
+                            "{selectedReport.admin_notes}"
+                          </p>
+                        </div>
+                      )}
+                      {selectedReport.resolved_at && (
+                        <div className="col-span-2">
+                          <p className="text-gray-500 dark:text-gray-400">Đã Xử Lý</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {formatDate(selectedReport.resolved_at)} bởi {selectedReport.resolver_username || 'Admin'}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -484,31 +566,29 @@ export default function ContentModeration() {
                       onChange={(e) => setModeratorNotes(e.target.value)}
                     ></textarea>
                     <div className="flex flex-wrap items-center gap-3">
-                      <button
-                        onClick={handleApprove}
-                        className="flex h-10 min-w-[120px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-emerald-500 px-4 text-sm font-bold text-white transition-colors hover:bg-emerald-600"
-                      >
-                        <span className="material-symbols-outlined">check_circle</span>
-<<<<<<< HEAD
-                        <span>Duyệt</span>
-=======
-                        <span>Phê Duyệt</span>
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
-                      </button>
-                      <button
-                        onClick={handleReject}
-                        className="flex h-10 min-w-[120px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-red-600 px-4 text-sm font-bold text-white transition-colors hover:bg-red-700"
-                      >
-                        <span className="material-symbols-outlined">delete_forever</span>
-                        <span>Từ Chối & Xóa</span>
-                      </button>
-                      <button
-                        onClick={handleEdit}
-                        className="flex h-10 min-w-[120px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg border border-gray-300 px-4 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-200 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                      >
-                        <span className="material-symbols-outlined">edit</span>
-                        <span>Chỉnh Sửa Nội Dung</span>
-                      </button>
+                      {selectedReport.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={handleResolve}
+                            className="flex h-10 min-w-[120px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-red-600 px-4 text-sm font-bold text-white transition-colors hover:bg-red-700"
+                          >
+                            <span className="material-symbols-outlined">delete_forever</span>
+                            <span>Xóa Nội Dung</span>
+                          </button>
+                          <button
+                            onClick={handleReject}
+                            className="flex h-10 min-w-[120px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-emerald-500 px-4 text-sm font-bold text-white transition-colors hover:bg-emerald-600"
+                          >
+                            <span className="material-symbols-outlined">check_circle</span>
+                            <span>Từ Chối Báo Cáo</span>
+                          </button>
+                        </>
+                      )}
+                      {selectedReport.status !== 'pending' && (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          Báo cáo này đã được xử lý
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -547,11 +627,7 @@ export default function ContentModeration() {
               {editingCards.map((card) => (
                 <div key={card.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
-<<<<<<< HEAD
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Thẻ {card.id}</span>
-=======
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Thẻ {card.id}</span>
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"

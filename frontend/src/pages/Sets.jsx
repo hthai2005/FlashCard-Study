@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import TopNav from '../components/TopNav'
+import ReportButton from '../components/ReportButton'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -286,8 +287,8 @@ export default function Sets() {
   const fetchSets = async () => {
     try {
       setLoading(true)
-      // Use /my endpoint to get current user's sets + public sets from others
-      const response = await api.get('/api/flashcards/sets/my')
+      // Get only current user's sets (not public sets from others)
+      const response = await api.get('/api/flashcards/sets')
       setSets(response.data || [])
       
       // Fetch card counts for all sets
@@ -302,13 +303,9 @@ export default function Sets() {
       }
       setCardCounts(counts)
     } catch (error) {
-<<<<<<< HEAD
-      toast.error('Không thể tải danh sách bộ thẻ')
-=======
       console.error('Error fetching sets:', error)
-      toast.error(error.response?.data?.detail || 'Không thể tải bộ thẻ')
+      toast.error('Không thể tải danh sách bộ thẻ')
       setSets([])
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
     } finally {
       setLoading(false)
     }
@@ -461,11 +458,7 @@ export default function Sets() {
                       </div>
                       <input
                         className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-full placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 text-base font-normal"
-<<<<<<< HEAD
                         placeholder="Tìm kiếm bộ thẻ của tôi..."
-=======
-                        placeholder="Tìm kiếm bộ thẻ..."
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
@@ -486,11 +479,7 @@ export default function Sets() {
                         ? 'text-primary'
                         : 'text-slate-700 dark:text-slate-300'
                     }`}>
-<<<<<<< HEAD
                       Lần Học Cuối
-=======
-                      Học Gần Nhất
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                     </p>
                     <span className="material-symbols-outlined text-slate-500 dark:text-slate-400">expand_more</span>
                   </button>
@@ -532,8 +521,7 @@ export default function Sets() {
                     // Ensure mastery is always a number (0-100), default to 0 if not set
                     const mastery = typeof masteryData[set.id] === 'number' ? masteryData[set.id] : 0
                     const masteryColor = getMasteryColor(mastery)
-                    // Check if this set belongs to the current user
-                    const isMySet = user && set.owner_id === user.id
+                    const isOwner = user && set.owner_id === user.id
                     
                     return (
                       <div
@@ -541,40 +529,54 @@ export default function Sets() {
                         className="flex flex-col gap-4 p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-lg hover:border-primary/50 dark:hover:border-primary/50 transition-all group"
                       >
                         <div className="w-full bg-gradient-to-br from-primary-400 via-purple-500 to-pink-500 aspect-video rounded-lg relative">
-                          {!isMySet && (
-                            <div className="absolute top-2 right-2 bg-green-500/90 text-white text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
-                              <span className="material-symbols-outlined text-xs">public</span>
-                              <span>Công Khai</span>
-                            </div>
-                          )}
                         </div>
                         <div className="flex-1">
                           <div className="flex items-start justify-between gap-2">
                             <p className="text-slate-900 dark:text-white text-base font-bold flex-1">
                               {set.title}
                             </p>
-                            {isMySet && (
-                              <span className="flex-shrink-0 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">
-                                Của Tôi
+                            {!isOwner && set.is_public && (
+                              <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
+                                Công khai
                               </span>
                             )}
                           </div>
-                          <p className="text-slate-500 dark:text-slate-400 text-sm">
-                            {cardCount} Thẻ
-                          </p>
-                          {!isMySet && set.owner_username && (
-                            <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">
-                              Tạo bởi: <span className="font-medium">{set.owner_username}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">
+                              {cardCount} Thẻ
                             </p>
-                          )}
+                            {!isOwner && set.owner_username && (
+                              <>
+                                <span className="text-slate-400 dark:text-slate-600">•</span>
+                                <div className="flex items-center gap-1.5">
+                                  {set.owner_avatar_url ? (
+                                    <img
+                                      src={set.owner_avatar_url.startsWith('http') ? set.owner_avatar_url : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${set.owner_avatar_url}`}
+                                      alt={set.owner_username}
+                                      className="w-4 h-4 rounded-full object-cover"
+                                      onError={(e) => {
+                                        e.target.style.display = 'none'
+                                        e.target.nextElementSibling.style.display = 'flex'
+                                      }}
+                                    />
+                                  ) : null}
+                                  <div 
+                                    className={`w-4 h-4 rounded-full bg-gradient-to-br from-primary-400 to-purple-500 flex items-center justify-center text-white text-[10px] font-semibold ${set.owner_avatar_url ? 'hidden' : ''}`}
+                                    style={{ display: set.owner_avatar_url ? 'none' : 'flex' }}
+                                  >
+                                    {set.owner_username.charAt(0).toUpperCase()}
+                                  </div>
+                                  <p className="text-slate-500 dark:text-slate-400 text-sm">
+                                    Bởi {set.owner_username}
+                                  </p>
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
                         <div className="flex flex-col gap-2">
                           <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
-<<<<<<< HEAD
                             <span>Thành Thạo</span>
-=======
-                            <span>Mức Độ Thành Thạo</span>
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                             <span>{mastery}%</span>
                           </div>
                           <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
@@ -598,23 +600,23 @@ export default function Sets() {
                           >
                             <span className="material-symbols-outlined">style</span>
                             <span>Học</span>
-<<<<<<< HEAD
                           </button>
-                          <button
-                            onClick={() => handleDeleteSet(set.id)}
-                            className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-                          >
-                            <span className="material-symbols-outlined">more_vert</span>
-=======
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
-                          </button>
-                          {isMySet && (
+                          {isOwner ? (
                             <button
                               onClick={() => handleDeleteSet(set.id)}
                               className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                             >
                               <span className="material-symbols-outlined">more_vert</span>
                             </button>
+                          ) : (
+                            set.is_public && (
+                              <ReportButton
+                                itemType="deck"
+                                itemId={set.id}
+                                ownerId={set.owner_id}
+                                itemTitle={set.title}
+                              />
+                            )
                           )}
                         </div>
                       </div>

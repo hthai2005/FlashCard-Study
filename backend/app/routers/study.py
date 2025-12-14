@@ -274,6 +274,77 @@ def get_last_studied_dates(
     
     return result
 
+@router.get("/sessions", response_model=List[StudySessionResponse])
+def get_study_sessions(
+    set_id: int = None,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get study sessions for current user, optionally filtered by set_id"""
+    query = db.query(models.StudySession).filter(
+        models.StudySession.user_id == current_user.id,
+        models.StudySession.completed_at.isnot(None)
+    )
+    
+    if set_id:
+        query = query.filter(models.StudySession.set_id == set_id)
+    
+    sessions = query.order_by(models.StudySession.started_at.asc()).all()
+    return sessions
+
+@router.get("/correct-streak")
+def get_correct_streak(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get current consecutive correct answer streak"""
+    # Get all study sessions ordered by time (oldest first)
+    sessions = db.query(models.StudySession).filter(
+        models.StudySession.user_id == current_user.id,
+        models.StudySession.completed_at.isnot(None)
+    ).order_by(models.StudySession.started_at.asc()).all()
+    
+    current_streak = 0
+    max_streak = 0
+    
+    # Calculate streak by going through sessions chronologically
+    # If a session has all cards correct, add to streak
+    # If a session has any incorrect, reset streak
+    for session in sessions:
+        if session.cards_studied > 0:
+            # Check if all cards in this session were correct
+            if session.cards_correct >= session.cards_studied:
+                # All correct - add to streak
+                current_streak += session.cards_correct
+                max_streak = max(max_streak, current_streak)
+            else:
+                # Some incorrect - streak broken
+                current_streak = 0
+    
+    # Also calculate current active streak from most recent sessions
+    # Get recent sessions (newest first) and work backwards
+    recent_sessions = db.query(models.StudySession).filter(
+        models.StudySession.user_id == current_user.id,
+        models.StudySession.completed_at.isnot(None)
+    ).order_by(models.StudySession.started_at.desc()).limit(200).all()
+    
+    # Reverse to process from oldest to newest
+    active_streak = 0
+    for session in reversed(recent_sessions):
+        if session.cards_studied > 0:
+            if session.cards_correct >= session.cards_studied:
+                # All correct - continue streak
+                active_streak += session.cards_correct
+            else:
+                # Streak broken - this is the current active streak
+                break
+    
+    # Use the active streak (from most recent sessions) as current_streak
+    return {
+        "current_streak": active_streak,
+        "max_streak": max_streak
+    }
+
 @router.get("/sessions/history", response_model=List[StudySessionDataPoint])
 def get_study_sessions_history(
     days: int = 30,
@@ -391,4 +462,50 @@ def get_study_activity(
         current_date += timedelta(days=1)
     
     return result
+
+@router.post("/sets/{set_id}/reset")
+def reset_study_progress(
+    set_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Reset study progress for a flashcard set (mark all cards as needing review)"""
+    db_set = db.query(models.FlashcardSet).filter(models.FlashcardSet.id == set_id).first()
+    if not db_set:
+        raise HTTPException(status_code=404, detail="Flashcard set not found")
+    
+    # Check access permission
+    if not current_user.is_admin:
+        if db_set.owner_id != current_user.id and not db_set.is_public:
+            raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Get all flashcards in the set
+    all_flashcards = db.query(models.Flashcard).filter(
+        models.Flashcard.set_id == set_id
+    ).all()
+    
+    flashcard_ids = [card.id for card in all_flashcards]
+    
+    # Reset all study records for this user and set
+    study_records = db.query(models.StudyRecord).filter(
+        models.StudyRecord.user_id == current_user.id,
+        models.StudyRecord.flashcard_id.in_(flashcard_ids)
+    ).all()
+    
+    for record in study_records:
+        # Reset to initial state (like a new card)
+        record.ease_factor = 2.5
+        record.interval = 1
+        record.repetitions = 0
+        record.next_review_date = None
+        record.last_reviewed = None
+        record.total_reviews = 0  # Reset total_reviews so cards_studied count resets
+        # Keep correct_count and incorrect_count for overall statistics if needed
+        # But reset them too for a clean restart
+        record.correct_count = 0
+        record.incorrect_count = 0
+    
+    db.commit()
+    
+    return {"message": "Study progress reset successfully", "cards_reset": len(study_records)}
 

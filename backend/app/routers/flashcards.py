@@ -17,18 +17,23 @@ def create_flashcard_set(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
+    # If user is admin, set status to 'approved', otherwise 'pending'
+    status = 'approved' if current_user.is_admin else 'pending'
+    
     db_set = models.FlashcardSet(
         **set_data.dict(),
-        owner_id=current_user.id
+        owner_id=current_user.id,
+        status=status
     )
     db.add(db_set)
     db.commit()
     db.refresh(db_set)
     # Reload with owner relationship
     db_set = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner)).filter(models.FlashcardSet.id == db_set.id).first()
-    # Add username
+    # Add username and avatar_url
     if db_set.owner:
         db_set.owner_username = db_set.owner.username
+        db_set.owner_avatar_url = db_set.owner.avatar_url
     return db_set
 
 @router.get("/sets", response_model=List[FlashcardSetResponse])
@@ -38,18 +43,35 @@ def get_flashcard_sets(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    # All users (including admin) see only their own sets
-    # "My Decks" should only show sets owned by the user
-    # Admin can use /api/admin/sets endpoint to see all sets for management
+    """
+    Get flashcard sets for "My Decks" page:
+    - All sets owned by current user (regardless of is_public status)
+    - All public sets from other users (is_public = True)
+    - Only approved sets (status = 'approved')
+    """
     query = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner))
+    
+    # Get user's own sets OR public sets from other users
+    # All sets must be approved
     sets = query.filter(
-        models.FlashcardSet.owner_id == current_user.id
+        or_(
+            # User's own sets (can be public or private)
+            models.FlashcardSet.owner_id == current_user.id,
+            # Public sets from other users
+            and_(
+                models.FlashcardSet.is_public == True,
+                models.FlashcardSet.owner_id != current_user.id
+            )
+        ),
+        # Only show approved sets
+        models.FlashcardSet.status == 'approved'
     ).offset(skip).limit(limit).all()
     
-    # Add username to each set
+    # Add username and avatar_url to each set
     for set_item in sets:
         if set_item.owner:
             set_item.owner_username = set_item.owner.username
+            set_item.owner_avatar_url = set_item.owner.avatar_url
     
     return sets
 
@@ -74,10 +96,11 @@ def get_my_flashcard_sets(
             )
         ).offset(skip).limit(limit).all()
         
-        # Add username to each set
+        # Add username and avatar_url to each set
         for set_item in sets:
             if set_item.owner:
                 set_item.owner_username = set_item.owner.username
+                set_item.owner_avatar_url = set_item.owner.avatar_url
         
         return sets
     except Exception as e:
@@ -96,14 +119,21 @@ def get_flashcard_set(
     if not db_set:
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     
-    # Admin can access any set, regular users can only access their own or public sets
+    # Admin can access any set
+    # Regular users can access:
+    # - Their own sets (regardless of status)
+    # - Public sets that are approved
     if not current_user.is_admin:
-        if db_set.owner_id != current_user.id and not db_set.is_public:
-            raise HTTPException(status_code=403, detail="Not authorized")
+        if db_set.owner_id != current_user.id:
+            # Not owner - can only access if public AND approved
+            if not db_set.is_public or db_set.status != 'approved':
+                raise HTTPException(status_code=403, detail="Not authorized")
+        # If owner, allow access regardless of status (so they can see their pending decks)
     
-    # Add username
+    # Add username and avatar_url
     if db_set.owner:
         db_set.owner_username = db_set.owner.username
+        db_set.owner_avatar_url = db_set.owner.avatar_url
     
     return db_set
 
@@ -132,9 +162,10 @@ def update_flashcard_set(
     db.refresh(db_set)
     # Reload with owner relationship
     db_set = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner)).filter(models.FlashcardSet.id == set_id).first()
-    # Add username
+    # Add username and avatar_url
     if db_set.owner:
         db_set.owner_username = db_set.owner.username
+        db_set.owner_avatar_url = db_set.owner.avatar_url
     return db_set
 
 @router.delete("/sets/{set_id}")
@@ -210,6 +241,23 @@ def update_flashcard(
     
     db.commit()
     db.refresh(db_card)
+    return db_card
+
+@router.get("/cards/{card_id}", response_model=FlashcardResponse)
+def get_flashcard(
+    card_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    db_card = db.query(models.Flashcard).options(joinedload(models.Flashcard.set)).filter(models.Flashcard.id == card_id).first()
+    if not db_card:
+        raise HTTPException(status_code=404, detail="Flashcard not found")
+    
+    # Admin can access any card, regular users can only access cards from their own sets or public sets
+    if not current_user.is_admin:
+        if db_card.set.owner_id != current_user.id and not db_card.set.is_public:
+            raise HTTPException(status_code=403, detail="Not authorized")
+    
     return db_card
 
 @router.delete("/cards/{card_id}")

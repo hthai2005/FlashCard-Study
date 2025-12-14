@@ -4,7 +4,7 @@ import TopNav from '../components/TopNav'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth()
@@ -58,61 +58,109 @@ export default function Dashboard() {
       setStudyHistory(historyRes.data || [])
       setStudyActivity(activityRes.data || [])
       
+      // Fetch last studied dates for all sets
+      const lastStudiedRes = await api.get('/api/study/sets/last-studied').catch(() => ({ data: {} }))
+      const lastStudiedMap = lastStudiedRes.data || {}
+      
       // Fetch progress for all sets
       const progressData = []
-      let totalMastered = 0
-      let totalCards = 0
-      let correctAnswers = 0
-      let totalAnswers = 0
-      let totalDailyProgress = 0
-      let dailyGoal = 20
+      let completedDecksCount = 0 // Count decks that are 100% complete
+      
+      // Count public decks (decks user owns OR public decks from others)
+      // Since API already filters to return only accessible decks, we count all sets
+      // But we need to exclude private decks from other users
+      // Actually, API only returns: user's own decks (public or private) + public decks from others
+      // So we can just count all sets in the response
+      const publicDecksCount = setsRes.data.filter(set => {
+        // Count if it's user's own deck OR it's public from another user
+        return set.owner_id === user.id || set.is_public === true
+      }).length
 
       for (const set of setsRes.data) {
         try {
-          const progressRes = await api.get(`/api/study/progress/${set.id}`).catch(() => null)
+          // Fetch progress and cards count in parallel
+          const [progressRes, cardsRes] = await Promise.all([
+            api.get(`/api/study/progress/${set.id}`).catch(() => null),
+            api.get(`/api/flashcards/sets/${set.id}/cards`).catch(() => ({ data: [] }))
+          ])
+          
+          // Get total cards from cards API (more accurate)
+          const total_cards_from_api = cardsRes.data?.length || 0
+          
           if (progressRes && progressRes.data) {
-            const { total_cards, cards_mastered, cards_correct, cards_studied, daily_progress, daily_goal } = progressRes.data
-            const mastery = total_cards > 0 ? Math.round((cards_mastered / total_cards) * 100) : 0
+            const { total_cards, cards_mastered, cards_correct, cards_studied } = progressRes.data
+            // Use total_cards from progress API if available, otherwise use cards API count
+            const actual_total_cards = total_cards || total_cards_from_api
+            const mastery = actual_total_cards > 0 ? Math.round((cards_mastered / actual_total_cards) * 100) : 0
             const accuracy = cards_studied > 0 ? Math.round((cards_correct / cards_studied) * 100) : 0
-            
-            totalMastered += cards_mastered
-            totalCards += total_cards
-            correctAnswers += cards_correct || 0
-            totalAnswers += cards_studied || 0
-            totalDailyProgress += daily_progress || 0
-            if (daily_goal) dailyGoal = daily_goal
+
+            // Check if deck is 100% complete (cards_studied === total_cards and total_cards > 0)
+            if (actual_total_cards > 0 && cards_studied >= actual_total_cards) {
+              completedDecksCount++
+            }
+
+            // Get last studied date from study sessions, fallback to null if not studied
+            const lastStudiedDate = lastStudiedMap[set.id] || null
 
             progressData.push({
               id: set.id,
               name: set.title,
               mastery,
               accuracy,
-              lastStudied: set.updated_at || set.created_at
+              cards_studied: cards_studied || 0,
+              total_cards: actual_total_cards,
+              lastStudied: lastStudiedDate
             })
           } else {
+            // No progress data, but we still have card count
+            // Get last studied date from study sessions, fallback to null if not studied
+            const lastStudiedDate = lastStudiedMap[set.id] || null
+            
             progressData.push({
               id: set.id,
               name: set.title,
               mastery: 0,
               accuracy: 0,
-              lastStudied: set.updated_at || set.created_at
+              cards_studied: 0,
+              total_cards: total_cards_from_api,
+              lastStudied: lastStudiedDate
             })
           }
         } catch {
-          progressData.push({
-            id: set.id,
-            name: set.title,
-            mastery: 0,
-            accuracy: 0,
-            lastStudied: set.updated_at || set.created_at
-          })
+          // Error fetching, try to get at least card count
+          try {
+            const cardsRes = await api.get(`/api/flashcards/sets/${set.id}/cards`).catch(() => ({ data: [] }))
+            const total_cards_from_api = cardsRes.data?.length || 0
+            // Get last studied date from study sessions, fallback to null if not studied
+            const lastStudiedDate = lastStudiedMap[set.id] || null
+            
+            progressData.push({
+              id: set.id,
+              name: set.title,
+              mastery: 0,
+              accuracy: 0,
+              cards_studied: 0,
+              total_cards: total_cards_from_api,
+              lastStudied: lastStudiedDate
+            })
+          } catch {
+            // Get last studied date from study sessions, fallback to null if not studied
+            const lastStudiedDate = lastStudiedMap[set.id] || null
+            
+            progressData.push({
+              id: set.id,
+              name: set.title,
+              mastery: 0,
+              accuracy: 0,
+              cards_studied: 0,
+              total_cards: 0,
+              lastStudied: lastStudiedDate
+            })
+          }
         }
       }
 
       setDeckProgress(progressData)
-
-      // Calculate overall stats
-      const overallAccuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0
       
       // Get streak from leaderboard or calculate
       let streak = 0
@@ -125,10 +173,10 @@ export default function Dashboard() {
 
       setStats({
         streak,
-        totalMastered,
-        accuracy: overallAccuracy,
-        dailyGoal,
-        dailyProgress: totalDailyProgress
+        totalMastered: completedDecksCount, // Now represents completed decks count
+        accuracy: 0, // Not used anymore, but keep for compatibility
+        dailyGoal: publicDecksCount, // Total number of public/accessible decks
+        dailyProgress: completedDecksCount // Number of decks completed (100%)
       })
 
       if (setsRes.data.length > 0) {
@@ -148,14 +196,30 @@ export default function Dashboard() {
     if (!dateString) return 'Chưa học'
     const date = new Date(dateString)
     const now = new Date()
-    const diffTime = Math.abs(now - date)
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     
-    if (diffDays === 0) return 'Hôm nay'
-    if (diffDays === 1) return 'Hôm qua'
-    if (diffDays < 7) return `${diffDays} ngày trước`
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`
-    return `${Math.floor(diffDays / 30)} tháng trước`
+    // Check if same day (same year, month, day)
+    const isSameDay = date.getFullYear() === now.getFullYear() &&
+                      date.getMonth() === now.getMonth() &&
+                      date.getDate() === now.getDate()
+    
+    if (isSameDay) {
+      // Same day - show relative time (minutes/hours ago)
+      const diffMs = now - date
+      const diffMins = Math.floor(diffMs / 60000) // milliseconds to minutes
+      const diffHours = Math.floor(diffMs / 3600000) // milliseconds to hours
+      
+      if (diffMins < 1) return 'Vừa xong'
+      if (diffMins < 60) return `${diffMins} phút trước`
+      if (diffHours < 24) return `${diffHours} giờ trước`
+      return 'Hôm nay'
+    } else {
+      // Different day - show date (dd/mm/yyyy)
+      return date.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      })
+    }
   }
 
   if (authLoading) {
@@ -194,7 +258,7 @@ export default function Dashboard() {
 
           {/* Stats Cards */}
           {user && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-white/10 bg-white dark:bg-background-dark">
                 <p className="text-gray-600 dark:text-gray-300 text-base font-medium leading-normal">
                   Chuỗi Ngày Học
@@ -205,18 +269,10 @@ export default function Dashboard() {
               </div>
               <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-white/10 bg-white dark:bg-background-dark">
                 <p className="text-gray-600 dark:text-gray-300 text-base font-medium leading-normal">
-                  Tổng Thẻ Đã Thành Thạo
+                  Tổng Bộ Thẻ Đã Thành Thạo
                 </p>
                 <p className="text-gray-900 dark:text-white tracking-light text-3xl font-bold leading-tight">
-                  {stats.totalMastered} Thẻ
-                </p>
-              </div>
-              <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-white/10 bg-white dark:bg-background-dark">
-                <p className="text-gray-600 dark:text-gray-300 text-base font-medium leading-normal">
-                  Độ Chính Xác Tổng Thể
-                </p>
-                <p className="text-gray-900 dark:text-white tracking-light text-3xl font-bold leading-tight">
-                  {stats.accuracy}%
+                  {stats.totalMastered} Bộ Thẻ
                 </p>
               </div>
               <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-white/10 bg-white dark:bg-background-dark">
@@ -231,25 +287,23 @@ export default function Dashboard() {
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
-                      (stats.dailyProgress / stats.dailyGoal) >= 1
+                      stats.dailyGoal > 0 && (stats.dailyProgress / stats.dailyGoal) >= 1
                         ? 'bg-green-500'
-                        : (stats.dailyProgress / stats.dailyGoal) >= 0.5
+                        : stats.dailyGoal > 0 && (stats.dailyProgress / stats.dailyGoal) >= 0.5
                         ? 'bg-yellow-500'
                         : 'bg-blue-500'
                     }`}
                     style={{
-                      width: `${Math.min((stats.dailyProgress / stats.dailyGoal) * 100, 100)}%`
+                      width: `${stats.dailyGoal > 0 ? Math.min((stats.dailyProgress / stats.dailyGoal) * 100, 100) : 0}%`
                     }}
                   ></div>
                 </div>
                 <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
-                  {stats.dailyGoal - stats.dailyProgress > 0
-<<<<<<< HEAD
-                    ? `${stats.dailyGoal - stats.dailyProgress} thẻ còn lại`
-=======
-                    ? `Còn ${stats.dailyGoal - stats.dailyProgress} thẻ`
->>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
-                    : 'Đã đạt mục tiêu! 🎉'}
+                  {stats.dailyGoal > 0 && stats.dailyGoal - stats.dailyProgress > 0
+                    ? `${stats.dailyGoal - stats.dailyProgress} bộ thẻ còn lại`
+                    : stats.dailyGoal > 0 && stats.dailyProgress >= stats.dailyGoal
+                    ? 'Đã đạt mục tiêu! 🎉'
+                    : 'Chưa có bộ thẻ nào'}
                 </p>
               </div>
             </div>
@@ -374,168 +428,32 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Study Activity & Mastery by Deck */}
-          {user && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="flex flex-col gap-6 rounded-xl border border-gray-200 dark:border-white/10 p-6 bg-white dark:bg-background-dark">
-                <h2 className="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">
-                  Study Activity
-                </h2>
-                <div className="w-full h-80 bg-gray-50 dark:bg-white/5 rounded-lg p-4 overflow-auto">
-                  {studyActivity.length > 0 ? (
-                    <div className="flex flex-col gap-2">
-                      <div className="grid grid-cols-7 gap-1 mb-2">
-                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                          <div key={day} className="text-xs text-gray-500 dark:text-gray-400 text-center font-medium">
-                            {day}
-                          </div>
-                        ))}
-                      </div>
-                      <div className="grid grid-cols-7 gap-1">
-                        {(() => {
-                          const bgColors = [
-                            'bg-gray-100 dark:bg-gray-800',
-                            'bg-green-200 dark:bg-green-900',
-                            'bg-green-400 dark:bg-green-700',
-                            'bg-green-600 dark:bg-green-600',
-                            'bg-green-800 dark:bg-green-500'
-                          ]
-                          
-                          const items = []
-                          const activities = studyActivity.slice(-365)
-                          
-                          // Align first day of year to correct day of week
-                          if (activities.length > 0) {
-                            const firstDate = new Date(activities[0].date)
-                            const dayOfWeek = firstDate.getDay()
-                            
-                            if (dayOfWeek !== 0) {
-                              for (let i = 0; i < dayOfWeek; i++) {
-                                items.push(
-                                  <div key={`empty-${i}`} className="aspect-square"></div>
-                                )
-                              }
-                            }
-                          }
-                          
-                          activities.forEach((activity, index) => {
-                            const intensity = activity.intensity
-                            items.push(
-                              <div
-                                key={activity.date || `activity-${index}`}
-                                className={`aspect-square rounded ${bgColors[intensity]} cursor-pointer hover:ring-2 hover:ring-primary transition-all`}
-                                title={`${activity.date}: ${activity.cards_studied} cards`}
-                              ></div>
-                            )
-                          })
-                          
-                          return items
-                        })()}
-                      </div>
-                      <div className="flex items-center justify-end gap-4 mt-4 text-xs text-gray-500 dark:text-gray-400">
-                        <span>Less</span>
-                        <div className="flex gap-1">
-                          {[
-                            'bg-gray-100 dark:bg-gray-800',
-                            'bg-green-200 dark:bg-green-900',
-                            'bg-green-400 dark:bg-green-700',
-                            'bg-green-600 dark:bg-green-600',
-                            'bg-green-800 dark:bg-green-500'
-                          ].map((color, i) => (
-                            <div
-                              key={i}
-                              className={`w-3 h-3 rounded ${color}`}
-                            ></div>
-                          ))}
-                        </div>
-                        <span>More</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                  <p className="text-gray-400 dark:text-gray-500 text-sm">
-                        No activity data available yet
-                  </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-col gap-6 rounded-xl border border-gray-200 dark:border-white/10 p-6 bg-white dark:bg-background-dark">
-                <h2 className="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">
-                  Mastery by Deck
-                </h2>
-                <div className="w-full h-80 bg-gray-50 dark:bg-white/5 rounded-lg p-4">
-                  {deckProgress.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={deckProgress.map(deck => ({
-                            name: deck.name.length > 15 ? deck.name.substring(0, 15) + '...' : deck.name,
-                            value: deck.mastery
-                          }))}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {deckProgress.map((entry, index) => {
-                            const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
-                            return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-                          })}
-                        </Pie>
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'white', 
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '8px'
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                  <p className="text-gray-400 dark:text-gray-500 text-sm">
-                        No deck data available yet
-                  </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Deck Progress Table */}
           {user && (
             <div className="flex flex-col gap-4 rounded-xl border border-gray-200 dark:border-white/10 p-6 bg-white dark:bg-background-dark">
               <h2 className="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">
-                Deck Progress
+                Tiến Độ Bộ Thẻ
               </h2>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[600px] text-left">
                   <thead className="border-b border-gray-200 dark:border-white/10">
                     <tr>
                       <th className="p-4 text-sm font-semibold text-gray-500 dark:text-gray-400">
-                        Deck Name
+                        Tên Thẻ
                       </th>
                       <th className="p-4 text-sm font-semibold text-gray-500 dark:text-gray-400">
-                        Mastery
+                        Tiến Độ
                       </th>
                       <th className="p-4 text-sm font-semibold text-gray-500 dark:text-gray-400">
-                        Accuracy
-                      </th>
-                      <th className="p-4 text-sm font-semibold text-gray-500 dark:text-gray-400">
-                        Last Studied
+                        Lần Cuối Học
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {deckProgress.length === 0 ? (
                       <tr>
-                        <td colSpan="4" className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                          No decks yet. Create your first deck to get started!
+                        <td colSpan="3" className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                          Chưa có bộ thẻ nào. Tạo bộ thẻ đầu tiên để bắt đầu!
                         </td>
                       </tr>
                     ) : (
@@ -548,10 +466,7 @@ export default function Dashboard() {
                             {deck.name}
                           </td>
                           <td className="p-4 text-sm font-medium text-gray-600 dark:text-gray-300">
-                            {deck.mastery}%
-                          </td>
-                          <td className="p-4 text-sm font-medium text-gray-600 dark:text-gray-300">
-                            {deck.accuracy}%
+                            {deck.cards_studied || 0}/{deck.total_cards || 0} thẻ
                           </td>
                           <td className="p-4 text-sm font-medium text-gray-600 dark:text-gray-300">
                             {formatLastStudied(deck.lastStudied)}

@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from app.database import get_db
 from app import models, schemas, auth
+from pathlib import Path
+import time
 from app.schemas import UserResponse
 
 router = APIRouter()
@@ -15,6 +17,23 @@ def require_admin(current_user: models.User = Depends(auth.get_current_user)):
             detail="Admin access required"
         )
     return current_user
+
+@router.get("/admins", response_model=List[dict])
+def get_admins(
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all admin users (admin only)"""
+    admins = db.query(models.User).filter(models.User.is_admin == True).all()
+    
+    return [
+        {
+            "id": admin.id,
+            "username": admin.username,
+            "email": admin.email
+        }
+        for admin in admins
+    ]
 
 @router.get("/users", response_model=dict)
 def get_users(
@@ -166,6 +185,60 @@ def update_user(
     db.refresh(user)
     return user
 
+@router.post("/users/{user_id}/avatar")
+async def upload_user_avatar(
+    user_id: int,
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Upload avatar for a user (admin only)"""
+    # Get the target user
+    target_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file type. Only images are allowed."
+        )
+    
+    # Validate file size (max 5MB)
+    file_content = await file.read()
+    if len(file_content) > 5 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size too large. Maximum size is 5MB."
+        )
+    
+    # Create uploads directory if it doesn't exist
+    upload_dir = Path("uploads/avatars")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Generate unique filename
+    file_extension = Path(file.filename).suffix
+    timestamp = int(time.time() * 1000)  # Use milliseconds for better uniqueness
+    filename = f"avatar_{target_user.id}_{timestamp}{file_extension}"
+    file_path = upload_dir / filename
+    
+    # Save file
+    with open(file_path, "wb") as buffer:
+        buffer.write(file_content)
+    
+    # Update user avatar URL
+    avatar_url = f"/uploads/avatars/{filename}"
+    target_user.avatar_url = avatar_url
+    db.commit()
+    db.refresh(target_user)
+    
+    return {"avatar_url": avatar_url, "message": "Avatar uploaded successfully"}
+
 @router.get("/sets", response_model=List[schemas.FlashcardSetResponse])
 def get_all_sets(
     skip: int = 0,
@@ -183,4 +256,255 @@ def get_all_sets(
             set_item.owner_username = set_item.owner.username
     
     return sets
+
+@router.put("/sets/{set_id}/approve", response_model=schemas.FlashcardSetResponse)
+def approve_flashcard_set(
+    set_id: int,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Approve a flashcard set (admin only)"""
+    db_set = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner)).filter(
+        models.FlashcardSet.id == set_id
+    ).first()
+    
+    if not db_set:
+        raise HTTPException(status_code=404, detail="Flashcard set not found")
+    
+    db_set.status = 'approved'
+    db.commit()
+    db.refresh(db_set)
+    
+    # Add username
+    if db_set.owner:
+        db_set.owner_username = db_set.owner.username
+    
+    return db_set
+
+@router.put("/sets/{set_id}/reject", response_model=schemas.FlashcardSetResponse)
+def reject_flashcard_set(
+    set_id: int,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Reject a flashcard set (admin only)"""
+    db_set = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner)).filter(
+        models.FlashcardSet.id == set_id
+    ).first()
+    
+    if not db_set:
+        raise HTTPException(status_code=404, detail="Flashcard set not found")
+    
+    db_set.status = 'rejected'
+    db.commit()
+    db.refresh(db_set)
+    
+    # Add username
+    if db_set.owner:
+        db_set.owner_username = db_set.owner.username
+    
+    return db_set
+
+@router.get("/activities", response_model=List[dict])
+def get_recent_activities(
+    limit: int = 20,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get recent activities from users (admin only)"""
+    from sqlalchemy import desc
+    
+    activities = []
+    
+    # Get recently created decks
+    recent_decks = db.query(models.FlashcardSet).options(
+        joinedload(models.FlashcardSet.owner)
+    ).order_by(desc(models.FlashcardSet.created_at)).limit(limit // 3).all()
+    
+    for deck in recent_decks:
+        activities.append({
+            "type": "deck_created",
+            "user_id": deck.owner_id,
+            "username": deck.owner.username if deck.owner else "Unknown",
+            "description": f"đã tạo deck '{deck.title}'",
+            "timestamp": deck.created_at.isoformat() if deck.created_at else None,
+            "item_id": deck.id,
+            "item_type": "deck"
+        })
+    
+    # Get recent study sessions
+    from app.models import StudySession
+    recent_sessions = db.query(StudySession).options(
+        joinedload(StudySession.user)
+    ).order_by(desc(StudySession.started_at)).limit(limit // 3).all()
+    
+    for session in recent_sessions:
+        activities.append({
+            "type": "study_session",
+            "user_id": session.user_id,
+            "username": session.user.username if session.user else "Unknown",
+            "description": f"đã học {session.cards_studied} thẻ",
+            "timestamp": session.started_at.isoformat() if session.started_at else None,
+            "item_id": session.set_id,
+            "item_type": "study"
+        })
+    
+    # Get recent reports
+    from app.models import Report
+    recent_reports = db.query(Report).options(
+        joinedload(Report.reporter)
+    ).order_by(desc(Report.created_at)).limit(limit // 3).all()
+    
+    for report in recent_reports:
+        activities.append({
+            "type": "report",
+            "user_id": report.reporter_id,
+            "username": report.reporter.username if report.reporter else "Unknown",
+            "description": f"đã báo cáo {report.report_type}",
+            "timestamp": report.created_at.isoformat() if report.created_at else None,
+            "item_id": report.reported_item_id,
+            "item_type": "report"
+        })
+    
+    # Sort by timestamp and limit
+    activities.sort(key=lambda x: x["timestamp"] or "", reverse=True)
+    return activities[:limit]
+
+@router.get("/stats/user-growth", response_model=List[dict])
+def get_user_growth_stats(
+    days: int = 30,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get user growth statistics over time (admin only)"""
+    from datetime import datetime, timedelta
+    from sqlalchemy import func, cast, Date
+    
+    end_date = datetime.utcnow().date()
+    
+    # If days is very large (like 365 for "all"), get all users
+    if days >= 365:
+        # Get the earliest user registration date
+        earliest_user = db.query(func.min(cast(models.User.created_at, Date))).scalar()
+        if earliest_user:
+            start_date = earliest_user
+        else:
+            start_date = end_date - timedelta(days=30)  # Fallback to 30 days
+    else:
+        start_date = end_date - timedelta(days=days)
+    
+    # Get user registrations grouped by date
+    user_stats = db.query(
+        cast(models.User.created_at, Date).label('date'),
+        func.count(models.User.id).label('count')
+    ).filter(
+        cast(models.User.created_at, Date) >= start_date,
+        cast(models.User.created_at, Date) <= end_date
+    ).group_by(
+        cast(models.User.created_at, Date)
+    ).order_by('date').all()
+    
+    # For "all" view, group by week or month if too many days
+    if days >= 365:
+        # Group by week for better visualization
+        week_stats = {}
+        for stat in user_stats:
+            # Get week number
+            week_start = stat.date - timedelta(days=stat.date.weekday())
+            week_key = week_start.isoformat()
+            if week_key not in week_stats:
+                week_stats[week_key] = 0
+            week_stats[week_key] += stat.count
+        
+        # Create date range by weeks
+        date_range = []
+        current_date = start_date
+        # Round to start of week
+        current_date = current_date - timedelta(days=current_date.weekday())
+        while current_date <= end_date:
+            date_range.append(current_date)
+            current_date += timedelta(days=7)
+        
+        # Map stats to weeks
+        stats_dict = week_stats
+        
+        # Build result with cumulative count
+        result = []
+        cumulative = 0
+        for week_start in date_range:
+            week_key = week_start.isoformat()
+            count = stats_dict.get(week_key, 0)
+            cumulative += count
+            result.append({
+                "date": week_start.isoformat(),
+                "new_users": count,
+                "total_users": cumulative
+            })
+    else:
+        # Create a complete date range
+        date_range = []
+        current_date = start_date
+        while current_date <= end_date:
+            date_range.append(current_date)
+            current_date += timedelta(days=1)
+        
+        # Map stats to dates
+        stats_dict = {stat.date: stat.count for stat in user_stats}
+        
+        # Build result with cumulative count
+        result = []
+        cumulative = 0
+        for date in date_range:
+            count = stats_dict.get(date, 0)
+            cumulative += count
+            result.append({
+                "date": date.isoformat(),
+                "new_users": count,
+                "total_users": cumulative
+            })
+    
+    return result
+
+@router.get("/stats/cards-created", response_model=dict)
+def get_cards_created_stats(
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get statistics about cards created (admin only)"""
+    from sqlalchemy import func
+    from datetime import datetime, timedelta
+    
+    # Total cards
+    total_cards = db.query(func.count(models.Flashcard.id)).scalar() or 0
+    
+    # Cards created today
+    today = datetime.utcnow().date()
+    cards_today = db.query(func.count(models.Flashcard.id)).filter(
+        func.date(models.Flashcard.created_at) == today
+    ).scalar() or 0
+    
+    # Cards created this week
+    week_ago = datetime.utcnow() - timedelta(days=7)
+    cards_this_week = db.query(func.count(models.Flashcard.id)).filter(
+        models.Flashcard.created_at >= week_ago
+    ).scalar() or 0
+    
+    # Cards created this month
+    month_ago = datetime.utcnow() - timedelta(days=30)
+    cards_this_month = db.query(func.count(models.Flashcard.id)).filter(
+        models.Flashcard.created_at >= month_ago
+    ).scalar() or 0
+    
+    # Cards per deck (average)
+    total_decks = db.query(func.count(models.FlashcardSet.id)).scalar() or 1
+    avg_cards_per_deck = round(total_cards / total_decks, 1) if total_decks > 0 else 0
+    
+    return {
+        "total_cards": total_cards,
+        "cards_today": cards_today,
+        "cards_this_week": cards_this_week,
+        "cards_this_month": cards_this_month,
+        "avg_cards_per_deck": avg_cards_per_deck,
+        "total_decks": total_decks
+    }
 

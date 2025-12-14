@@ -34,14 +34,83 @@ export default function Achievements() {
         api.get('/api/leaderboard/my-rank').catch(() => ({ data: null }))
       ])
 
-      const totalDecks = setsRes.data.length
       const currentStreak = rankRes.data?.streak_days || 0
       
-      // Get session count (simplified - can be enhanced with actual API)
-      let totalSessions = 0
+      // Filter only user's own decks (owner_id === user.id)
+      const userOwnDecks = setsRes.data.filter(set => set.owner_id === user.id)
+      const totalDecksCreated = userOwnDecks.length
+
+      // Check for 100% completed decks (Bước Đầu and Vua Kiến Thức)
+      let completedDecksCount = 0
+      let hasOneCompletedDeck = false
+      
+      // Check for quick learner (master a deck within 1 hour)
+      let quickLearnerCompleted = false
+      
+      for (const set of userOwnDecks) {
+        try {
+          const progressRes = await api.get(`/api/study/progress/${set.id}`).catch(() => null)
+          if (progressRes && progressRes.data) {
+            const { total_cards, cards_studied } = progressRes.data
+            if (total_cards > 0 && cards_studied >= total_cards) {
+              completedDecksCount++
+              if (!hasOneCompletedDeck) {
+                hasOneCompletedDeck = true
+              }
+              
+              // Check for quick learner: master a deck within 1 hour
+              // We need to check study sessions for this deck
+              try {
+                const sessionsRes = await api.get(`/api/study/sessions?set_id=${set.id}`).catch(() => ({ data: [] }))
+                if (sessionsRes.data && sessionsRes.data.length > 0) {
+                  // Sort sessions by start time
+                  const sessions = sessionsRes.data.sort((a, b) => 
+                    new Date(a.started_at) - new Date(b.started_at)
+                  )
+                  
+                  const firstSession = sessions[0]
+                  if (!firstSession || !firstSession.completed_at) continue
+                  
+                  // Find the session where we first reached 100% completion
+                  // We'll check each session and see when cumulative cards studied >= total_cards
+                  let cumulativeCardsStudied = 0
+                  let completionSession = null
+                  
+                  for (const session of sessions) {
+                    if (!session.completed_at) continue
+                    cumulativeCardsStudied += session.cards_studied || 0
+                    
+                    // Check if we've reached 100% completion
+                    if (cumulativeCardsStudied >= total_cards) {
+                      completionSession = session
+                      break
+                    }
+                  }
+                  
+                  // If we found when we completed it, check if it was within 1 hour from first session
+                  if (completionSession && completionSession.completed_at) {
+                    const startTime = new Date(firstSession.started_at)
+                    const endTime = new Date(completionSession.completed_at)
+                    const hoursDiff = (endTime - startTime) / (1000 * 60 * 60)
+                    
+                    if (hoursDiff <= 1 && hoursDiff >= 0) {
+                      quickLearnerCompleted = true
+                    }
+                  }
+                }
+              } catch (err) {
+                console.error('Error checking quick learner:', err)
+              }
+            }
+          }
+        } catch {}
+      }
+
+      // Calculate correct streak (Người Hoàn Hảo)
+      let correctStreak = 0
       try {
-        const sessionsRes = await api.get('/api/study/sessions').catch(() => ({ data: [] }))
-        totalSessions = sessionsRes.data.length || 0
+        const streakRes = await api.get('/api/study/correct-streak').catch(() => ({ data: { current_streak: 0 } }))
+        correctStreak = streakRes.data?.current_streak || 0
       } catch {}
 
       // Calculate achievements
@@ -49,75 +118,76 @@ export default function Achievements() {
         {
           id: 'first_steps',
           icon: 'school',
-          title: 'First Steps',
-          description: 'Complete your first study session.',
-          progress: totalSessions > 0 ? 1 : 0,
+          title: 'Bước Đầu',
+          description: 'Hoàn thành 100% một bộ thẻ.',
+          progress: hasOneCompletedDeck ? 1 : 0,
           maxProgress: 1,
-          completed: totalSessions > 0,
-          status: totalSessions > 0 ? '1/1 Completed' : '0/1 Completed'
+          completed: hasOneCompletedDeck,
+          status: hasOneCompletedDeck ? '1/1 Đã Hoàn Thành' : '0/1 Đã Hoàn Thành'
         },
         {
           id: 'study_streak',
           icon: 'local_fire_department',
-          title: 'Study Streak',
-          description: 'Maintain a 7-day study streak.',
+          title: 'Chuỗi Học Tập',
+          description: 'Duy trì chuỗi học tập 7 ngày liên tiếp.',
           progress: Math.min(currentStreak, 7),
           maxProgress: 7,
           completed: currentStreak >= 7,
-          status: `${currentStreak}/7 Days`
+          status: `${currentStreak}/7 Ngày`
         },
         {
           id: 'deck_builder',
           icon: 'library_add',
-          title: 'Deck Builder',
-          description: 'Create 5 custom decks.',
-          progress: Math.min(totalDecks, 5),
+          title: 'Người Xây Dựng',
+          description: 'Tạo 5 bộ thẻ tùy chỉnh.',
+          progress: Math.min(totalDecksCreated, 5),
           maxProgress: 5,
-          completed: totalDecks >= 5,
-          status: `${totalDecks}/5 Decks`
+          completed: totalDecksCreated >= 5,
+          status: `${totalDecksCreated}/5 Bộ Thẻ`
         },
         {
           id: 'quick_learner',
           icon: 'rocket_launch',
-          title: 'Quick Learner',
-          description: 'Master a deck in under an hour.',
-          progress: 0,
+          title: 'Học Nhanh',
+          description: 'Thành thạo một bộ thẻ trong vòng một giờ.',
+          progress: quickLearnerCompleted ? 1 : 0,
           maxProgress: 1,
-          completed: false,
-          status: 'Locked'
+          completed: quickLearnerCompleted,
+          status: quickLearnerCompleted ? '1/1 Đã Hoàn Thành' : 'Đã Khóa'
         },
         {
           id: 'knowledge_king',
           icon: 'social_leaderboard',
-          title: 'Knowledge King',
-          description: 'Score 100% on 10 quizzes.',
-          progress: 0, // Can be calculated from study sessions
+          title: 'Vua Kiến Thức',
+          description: 'Hoàn thành 100% 10 bộ thẻ của bạn.',
+          progress: Math.min(completedDecksCount, 10),
           maxProgress: 10,
-          completed: false,
-          status: '0/10 Quizzes'
+          completed: completedDecksCount >= 10,
+          status: `${completedDecksCount}/10 Bộ Thẻ`
         },
         {
           id: 'perfectionist',
           icon: 'workspace_premium',
-          title: 'Perfectionist',
-          description: 'Get 1000 cards right in a row.',
-          progress: 0, // Can be calculated from study records
+          title: 'Người Hoàn Hảo',
+          description: 'Trả lời đúng 1000 thẻ liên tiếp.',
+          progress: Math.min(correctStreak, 1000),
           maxProgress: 1000,
-          completed: false,
-          status: '0/1000 Cards'
+          completed: correctStreak >= 1000,
+          status: `${correctStreak}/1000 Thẻ`
         }
       ]
 
       setAchievements(achievementList)
       setStats({
-        totalSessions,
+        totalSessions: 0,
         currentStreak,
-        totalDecks,
-        perfectQuizzes: 0,
-        correctStreak: 0
+        totalDecks: totalDecksCreated,
+        perfectQuizzes: completedDecksCount,
+        correctStreak
       })
     } catch (error) {
-      toast.error('Failed to load achievements')
+      console.error('Error fetching achievements:', error)
+      toast.error('Không thể tải thành tựu')
     } finally {
       setLoading(false)
     }
@@ -160,7 +230,7 @@ export default function Achievements() {
                 className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#283339] text-slate-700 dark:text-white transition-colors cursor-pointer"
               >
                 <span className="material-symbols-outlined text-2xl">person</span>
-                <p className="text-sm font-medium leading-normal">Profile</p>
+                <p className="text-sm font-medium leading-normal">Hồ Sơ</p>
               </a>
               <a
                 onClick={(e) => {
@@ -169,25 +239,25 @@ export default function Achievements() {
                 className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/20 text-primary cursor-pointer"
               >
                 <span className="material-symbols-outlined text-2xl">military_tech</span>
-                <p className="text-sm font-medium leading-normal">Achievements</p>
+                <p className="text-sm font-medium leading-normal">Thành Tựu</p>
               </a>
               <div className="border-t border-slate-200 dark:border-[#283339] my-2"></div>
               <a
                 onClick={(e) => {
                   e.preventDefault()
-                  toast.info('Help center coming soon!')
+                  toast.info('Trung tâm trợ giúp sẽ sớm có mặt!')
                 }}
                 className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#283339] text-slate-700 dark:text-white transition-colors cursor-pointer"
               >
                 <span className="material-symbols-outlined text-2xl">help</span>
-                <p className="text-sm font-medium leading-normal">Help</p>
+                <p className="text-sm font-medium leading-normal">Trợ Giúp</p>
               </a>
               <a
                 onClick={handleLogout}
                 className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors cursor-pointer"
               >
                 <span className="material-symbols-outlined text-2xl">logout</span>
-                <p className="text-sm font-medium leading-normal">Log Out</p>
+                <p className="text-sm font-medium leading-normal">Đăng Xuất</p>
               </a>
             </div>
           </aside>
@@ -197,7 +267,7 @@ export default function Achievements() {
             <div className="flex flex-col gap-8">
               <div className="flex flex-col gap-6" id="achievements">
                 <h1 className="text-slate-900 dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-[-0.033em] min-w-72">
-                  Achievements
+                  Thành Tựu
                 </h1>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

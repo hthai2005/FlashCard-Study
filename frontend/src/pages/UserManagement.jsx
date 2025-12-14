@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import toast from 'react-hot-toast'
@@ -20,6 +20,10 @@ export default function UserManagement() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [editForm, setEditForm] = useState({ username: '', email: '', is_admin: false, is_active: true })
+  const [avatarFile, setAvatarFile] = useState(null)
+  const [avatarPreview, setAvatarPreview] = useState(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const avatarFileInputRef = useRef(null)
   const usersPerPage = 5
 
   useEffect(() => {
@@ -90,7 +94,8 @@ export default function UserManagement() {
             last_active: lastActive,
             status: user.is_active ? 'Active' : 'Suspended',
             is_admin: user.is_admin,
-            is_active: user.is_active
+            is_active: user.is_active,
+            avatar_url: user.avatar_url || null
           }
         })
         
@@ -146,7 +151,43 @@ export default function UserManagement() {
       is_admin: user.is_admin || false,
       is_active: user.is_active !== false
     })
+    // Set avatar preview if user has avatar
+    if (user.avatar_url) {
+      const avatarUrl = user.avatar_url.startsWith('http') 
+        ? user.avatar_url 
+        : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${user.avatar_url}`
+      setAvatarPreview(avatarUrl)
+    } else {
+      setAvatarPreview(null)
+    }
+    setAvatarFile(null)
     setShowEditModal(true)
+  }
+
+  const handleAvatarFileChange = (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Chỉ chấp nhận file ảnh (JPEG, PNG, GIF, WebP)')
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Kích thước file quá lớn. Tối đa 5MB')
+      return
+    }
+
+    setAvatarFile(file)
+    // Create preview
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setAvatarPreview(reader.result)
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleSaveEdit = async () => {
@@ -167,6 +208,21 @@ export default function UserManagement() {
     }
     
     try {
+      // First, upload avatar if there's a new file
+      if (avatarFile) {
+        setUploadingAvatar(true)
+        const formData = new FormData()
+        formData.append('file', avatarFile)
+
+        await api.post(`/api/admin/users/${editingUser.id}/avatar`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+        setUploadingAvatar(false)
+      }
+
+      // Then update user info
       await api.put(`/api/admin/users/${editingUser.id}`, {
         username: editForm.username.trim(),
         email: editForm.email.trim(),
@@ -176,8 +232,11 @@ export default function UserManagement() {
       toast.success('Đã cập nhật người dùng thành công')
       setShowEditModal(false)
       setEditingUser(null)
+      setAvatarFile(null)
+      setAvatarPreview(null)
       fetchUsers()
     } catch (error) {
+      setUploadingAvatar(false)
       const errorMessage = error.response?.data?.detail || 'Không thể cập nhật người dùng'
       toast.error(errorMessage)
     }
@@ -400,7 +459,21 @@ export default function UserManagement() {
                         </td>
                         <td className="px-4 py-3 text-gray-900 dark:text-white text-sm font-normal leading-normal">
                           <div className="flex items-center gap-3">
-                            <div className="bg-gradient-to-br from-primary-400 to-purple-500 aspect-square rounded-full size-8 flex items-center justify-center text-white text-xs font-semibold">
+                            {user.avatar_url ? (
+                              <img
+                                src={user.avatar_url.startsWith('http') ? user.avatar_url : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${user.avatar_url}`}
+                                alt={user.username}
+                                className="aspect-square rounded-full size-8 object-cover"
+                                onError={(e) => {
+                                  e.target.style.display = 'none'
+                                  e.target.nextElementSibling.style.display = 'flex'
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className={`bg-gradient-to-br from-primary-400 to-purple-500 aspect-square rounded-full size-8 flex items-center justify-center text-white text-xs font-semibold ${user.avatar_url ? 'hidden' : ''}`}
+                              style={{ display: user.avatar_url ? 'none' : 'flex' }}
+                            >
                               {user.full_name?.charAt(0).toUpperCase() || user.username?.charAt(0).toUpperCase() || 'U'}
                             </div>
                             <div>
@@ -514,6 +587,8 @@ export default function UserManagement() {
                 onClick={() => {
                   setShowEditModal(false)
                   setEditingUser(null)
+                  setAvatarFile(null)
+                  setAvatarPreview(null)
                 }}
                 className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               >
@@ -522,6 +597,58 @@ export default function UserManagement() {
             </div>
 
             <div className="space-y-4">
+              {/* Avatar Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Ảnh Đại Diện
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    {avatarPreview ? (
+                      <img
+                        src={avatarPreview}
+                        alt="Avatar preview"
+                        className="aspect-square rounded-full w-20 h-20 object-cover border-2 border-gray-300 dark:border-gray-600"
+                      />
+                    ) : (
+                      <div className="bg-gradient-to-br from-primary-400 to-purple-500 aspect-square rounded-full w-20 h-20 flex items-center justify-center text-white text-2xl font-semibold">
+                        {editForm.username?.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="file"
+                      ref={avatarFileInputRef}
+                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                      onChange={handleAvatarFileChange}
+                      className="hidden"
+                      disabled={uploadingAvatar}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => avatarFileInputRef.current?.click()}
+                      disabled={uploadingAvatar}
+                      className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {uploadingAvatar ? 'Đang tải...' : 'Chọn Ảnh'}
+                    </button>
+                    {avatarFile && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAvatarFile(null)
+                          setAvatarPreview(editingUser.avatar_url ? (editingUser.avatar_url.startsWith('http') ? editingUser.avatar_url : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${editingUser.avatar_url}`) : null)
+                        }}
+                        className="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                      >
+                        Xóa
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Tên Đăng Nhập

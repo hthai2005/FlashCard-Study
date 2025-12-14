@@ -28,6 +28,7 @@ class FlashcardSet(Base):
     description = Column(Text)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     is_public = Column(Boolean, default=False)
+    status = Column(String, default='pending')  # pending, approved, rejected
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -101,4 +102,23 @@ class Leaderboard(Base):
     
     # Relationships
     user = relationship("User", back_populates="leaderboard_entry")
+
+class Report(Base):
+    __tablename__ = "reports"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    report_type = Column(String, nullable=False)  # 'deck' or 'card'
+    reported_item_id = Column(Integer, nullable=False)  # ID of deck or card
+    reporter_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    reason = Column(String, nullable=False)  # 'inappropriate', 'copyright', 'spam', 'misinformation', 'other'
+    description = Column(Text, nullable=True)  # Optional detailed description
+    status = Column(String, default='pending')  # 'pending', 'resolved', 'rejected'
+    admin_notes = Column(Text, nullable=True)  # Admin's notes
+    resolved_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # Admin who resolved
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    reporter = relationship("User", foreign_keys=[reporter_id])
+    resolver = relationship("User", foreign_keys=[resolved_by])
 

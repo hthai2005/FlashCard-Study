@@ -88,6 +88,7 @@ class FlashcardSetResponse(FlashcardSetBase):
     id: int
     owner_id: int
     owner_username: Optional[str] = None
+    status: Optional[str] = 'pending'  # pending, approved, rejected
     created_at: datetime
     updated_at: Optional[datetime] = None
     
@@ -184,4 +185,36 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+# Report schemas
+class ReportCreate(BaseModel):
+    report_type: str  # 'deck' or 'card'
+    reported_item_id: int
+    reason: str  # 'inappropriate', 'copyright', 'spam', 'misinformation', 'other'
+    description: Optional[str] = None
+
+class ReportResponse(BaseModel):
+    id: int
+    report_type: str
+    reported_item_id: int
+    reporter_id: int
+    reporter_username: Optional[str] = None
+    reason: str
+    description: Optional[str] = None
+    status: str
+    admin_notes: Optional[str] = None
+    resolved_by: Optional[int] = None
+    resolver_username: Optional[str] = None
+    resolved_at: Optional[datetime] = None
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class ReportResolve(BaseModel):
+    action: str  # 'delete_deck', 'delete_card', 'warn_user'
+    admin_notes: Optional[str] = None
+
+class ReportReject(BaseModel):
+    admin_notes: Optional[str] = None
 
