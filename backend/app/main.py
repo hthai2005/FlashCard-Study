@@ -154,6 +154,49 @@ migrate_add_avatar_url()
 migrate_add_status()
 migrate_create_reports_table()
 
+# Tự động tạo admin account nếu chưa có
+def create_default_admin():
+    """Tạo tài khoản admin mặc định nếu chưa có"""
+    try:
+        from app.database import SessionLocal
+        from app import models, auth
+        
+        db = SessionLocal()
+        try:
+            # Kiểm tra xem đã có admin chưa
+            admin = db.query(models.User).filter(models.User.username == "admin").first()
+            if not admin:
+                # Tạo admin
+                admin_password = "admin123"
+                hashed_password = auth.get_password_hash(admin_password)
+                admin_user = models.User(
+                    username="admin",
+                    email="admin@example.com",
+                    hashed_password=hashed_password,
+                    is_active=True,
+                    is_admin=True
+                )
+                db.add(admin_user)
+                db.flush()
+                
+                # Tạo leaderboard entry cho admin
+                admin_leaderboard = models.Leaderboard(user_id=admin_user.id)
+                db.add(admin_leaderboard)
+                
+                db.commit()
+                print("✅ Đã tạo tài khoản admin mặc định (username: admin, password: admin123)")
+            else:
+                print("ℹ️  Tài khoản admin đã tồn tại")
+        except Exception as e:
+            db.rollback()
+            print(f"⚠️  Lỗi khi tạo admin: {e}")
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"⚠️  Lỗi khi khởi tạo admin: {e}")
+
+create_default_admin()
+
 # Create uploads directory if it doesn't exist
 uploads_dir = Path("uploads/avatars")
 uploads_dir.mkdir(parents=True, exist_ok=True)
