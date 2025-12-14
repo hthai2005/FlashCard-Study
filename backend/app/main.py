@@ -202,8 +202,8 @@ uploads_dir = Path("uploads/avatars")
 uploads_dir.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
-        title="Studycart API",
-        description="API for Studycart application with spaced repetition",
+        title="Studycard API",
+        description="API for Studycard application with spaced repetition",
         version="1.0.0"
     )
 
@@ -243,7 +243,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 async def root():
-    return {"message": "Studycart API"}
+    return {"message": "Studycard API"}
 
 @app.get("/api/health")
 async def health_check():
