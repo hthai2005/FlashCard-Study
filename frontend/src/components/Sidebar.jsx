@@ -22,7 +22,7 @@ export default function Sidebar() {
               📚
             </div>
             <div className="flex flex-col">
-              <h1 className="text-white text-base font-medium leading-normal">Flashcard App</h1>
+              <h1 className="text-white text-base font-medium leading-normal">Studycart</h1>
               <p className="text-[#9da6b9] text-sm font-normal leading-normal">Học thông minh hơn</p>
             </div>
           </Link>

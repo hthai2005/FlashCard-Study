@@ -159,10 +159,10 @@ uploads_dir = Path("uploads/avatars")
 uploads_dir.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
-    title="Flashcard Study App API",
-    description="API for flashcard study application with spaced repetition",
-    version="1.0.0"
-)
+        title="Studycart API",
+        description="API for Studycart application with spaced repetition",
+        version="1.0.0"
+    )
 
 # CORS middleware
 app.add_middleware(
@@ -197,7 +197,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 async def root():
-    return {"message": "Flashcard Study App API"}
+    return {"message": "Studycart API"}
 
 @app.get("/api/health")
 async def health_check():
