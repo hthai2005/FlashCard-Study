@@ -118,7 +118,13 @@ class Report(Base):
     resolved_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
+    # Snapshot fields to preserve info even after item is deleted
+    item_title = Column(Text, nullable=True)  # Title of deck or card content
+    item_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Owner of the reported item
+    item_owner_username = Column(String, nullable=True)  # Username of the owner
+    
     # Relationships
     reporter = relationship("User", foreign_keys=[reporter_id])
     resolver = relationship("User", foreign_keys=[resolved_by])
+    item_owner = relationship("User", foreign_keys=[item_owner_id])
 

@@ -143,10 +143,67 @@ def migrate_create_reports_table():
     except Exception as e:
         print(f"⚠️  Lỗi khi migration reports table: {e}")
 
+# Migration: Add snapshot fields to reports table
+def migrate_add_report_snapshot_fields():
+    """Thêm các cột snapshot vào bảng reports nếu chưa có"""
+    try:
+        if not str(engine.url).startswith("sqlite"):
+            with engine.begin() as conn:
+                # Check and add item_title
+                check_title = text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name='reports' AND column_name='item_title';
+                """)
+                result = conn.execute(check_title)
+                if result.fetchone() is None:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN item_title TEXT;"))
+                    print("✅ Đã thêm cột item_title vào bảng reports")
+                
+                # Check and add item_owner_id
+                check_owner_id = text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name='reports' AND column_name='item_owner_id';
+                """)
+                result = conn.execute(check_owner_id)
+                if result.fetchone() is None:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN item_owner_id INTEGER REFERENCES users(id);"))
+                    print("✅ Đã thêm cột item_owner_id vào bảng reports")
+                
+                # Check and add item_owner_username
+                check_owner_username = text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name='reports' AND column_name='item_owner_username';
+                """)
+                result = conn.execute(check_owner_username)
+                if result.fetchone() is None:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN item_owner_username VARCHAR(255);"))
+                    print("✅ Đã thêm cột item_owner_username vào bảng reports")
+        else:
+            # SQLite
+            inspector = inspect(engine)
+            columns = [col['name'] for col in inspector.get_columns('reports')]
+            
+            with engine.begin() as conn:
+                if 'item_title' not in columns:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN item_title TEXT;"))
+                    print("✅ Đã thêm cột item_title vào bảng reports (SQLite)")
+                if 'item_owner_id' not in columns:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN item_owner_id INTEGER REFERENCES users(id);"))
+                    print("✅ Đã thêm cột item_owner_id vào bảng reports (SQLite)")
+                if 'item_owner_username' not in columns:
+                    conn.execute(text("ALTER TABLE reports ADD COLUMN item_owner_username VARCHAR(255);"))
+                    print("✅ Đã thêm cột item_owner_username vào bảng reports (SQLite)")
+    except Exception as e:
+        print(f"⚠️  Lỗi khi migration report snapshot fields: {e}")
+
 # Chạy migrations
 migrate_add_avatar_url()
 migrate_add_status()
 migrate_create_reports_table()
+migrate_add_report_snapshot_fields()
 
 # Tự động tạo admin account nếu chưa có
 def create_default_admin():

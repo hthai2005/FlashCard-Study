@@ -207,6 +207,10 @@ class ReportResponse(BaseModel):
     resolver_username: Optional[str] = None
     resolved_at: Optional[datetime] = None
     created_at: datetime
+    # Snapshot fields
+    item_title: Optional[str] = None
+    item_owner_id: Optional[int] = None
+    item_owner_username: Optional[str] = None
     
     class Config:
         from_attributes = True

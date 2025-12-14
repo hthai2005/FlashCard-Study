@@ -1,4 +1,5 @@
 from typing import List
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, func
@@ -24,9 +25,15 @@ def create_report(
     if report_data.reason not in valid_reasons:
         raise HTTPException(status_code=400, detail=f"reason must be one of: {', '.join(valid_reasons)}")
     
-    # Get the reported item
+    # Get the reported item and owner info
+    item_title = None
+    item_owner_id = None
+    item_owner_username = None
+    
     if report_data.report_type == 'deck':
-        reported_item = db.query(models.FlashcardSet).filter(
+        reported_item = db.query(models.FlashcardSet).options(
+            joinedload(models.FlashcardSet.owner)
+        ).filter(
             models.FlashcardSet.id == report_data.reported_item_id
         ).first()
         if not reported_item:
@@ -39,9 +46,15 @@ def create_report(
         # User can only report public decks
         if not reported_item.is_public:
             raise HTTPException(status_code=403, detail="Cannot report private content")
+        
+        # Save snapshot info
+        item_title = reported_item.title
+        item_owner_id = reported_item.owner_id
+        if reported_item.owner:
+            item_owner_username = reported_item.owner.username
     else:  # card
         reported_item = db.query(models.Flashcard).options(
-            joinedload(models.Flashcard.set)
+            joinedload(models.Flashcard.set).joinedload(models.FlashcardSet.owner)
         ).filter(models.Flashcard.id == report_data.reported_item_id).first()
         if not reported_item:
             raise HTTPException(status_code=404, detail="Card not found")
@@ -53,6 +66,12 @@ def create_report(
         # User can only report cards from public decks
         if not reported_item.set.is_public:
             raise HTTPException(status_code=403, detail="Cannot report private content")
+        
+        # Save snapshot info
+        item_title = f"{reported_item.front} / {reported_item.back}"
+        item_owner_id = reported_item.set.owner_id
+        if reported_item.set.owner:
+            item_owner_username = reported_item.set.owner.username
     
     # Check if user already reported this item (pending)
     existing_report = db.query(models.Report).filter(
@@ -65,14 +84,17 @@ def create_report(
     if existing_report:
         raise HTTPException(status_code=400, detail="You have already reported this item")
     
-    # Create report
+    # Create report with snapshot info
     db_report = models.Report(
         report_type=report_data.report_type,
         reported_item_id=report_data.reported_item_id,
         reporter_id=current_user.id,
         reason=report_data.reason,
         description=report_data.description,
-        status='pending'
+        status='pending',
+        item_title=item_title,
+        item_owner_id=item_owner_id,
+        item_owner_username=item_owner_username
     )
     db.add(db_report)
     db.commit()
@@ -176,14 +198,51 @@ def resolve_report(
     if report.status != 'pending':
         raise HTTPException(status_code=400, detail="Report is not pending")
     
+    # Save snapshot info if not already saved (before deletion)
+    if not report.item_title or not report.item_owner_id:
+        if report.report_type == 'deck':
+            deck = db.query(models.FlashcardSet).options(
+                joinedload(models.FlashcardSet.owner)
+            ).filter(
+                models.FlashcardSet.id == report.reported_item_id
+            ).first()
+            if deck:
+                report.item_title = deck.title
+                report.item_owner_id = deck.owner_id
+                if deck.owner:
+                    report.item_owner_username = deck.owner.username
+        else:  # card
+            card = db.query(models.Flashcard).options(
+                joinedload(models.Flashcard.set).joinedload(models.FlashcardSet.owner)
+            ).filter(models.Flashcard.id == report.reported_item_id).first()
+            if card:
+                report.item_title = f"{card.front} / {card.back}"
+                report.item_owner_id = card.set.owner_id
+                if card.set.owner:
+                    report.item_owner_username = card.set.owner.username
+    
     # Perform action based on resolve_data.action
     if resolve_data.action == 'delete_deck':
         if report.report_type != 'deck':
             raise HTTPException(status_code=400, detail="Action 'delete_deck' only applies to deck reports")
-        deck = db.query(models.FlashcardSet).filter(
+        deck = db.query(models.FlashcardSet).options(
+            joinedload(models.FlashcardSet.flashcards)
+        ).filter(
             models.FlashcardSet.id == report.reported_item_id
         ).first()
         if deck:
+            # Delete all study_sessions related to this deck first
+            db.query(models.StudySession).filter(
+                models.StudySession.set_id == deck.id
+            ).delete()
+            # Delete all study_records related to cards in this deck
+            # Get all card IDs in this deck
+            card_ids = [card.id for card in deck.flashcards]
+            if card_ids:
+                db.query(models.StudyRecord).filter(
+                    models.StudyRecord.flashcard_id.in_(card_ids)
+                ).delete()
+            # Now delete the deck (this will cascade delete flashcards)
             db.delete(deck)
     
     elif resolve_data.action == 'delete_card':

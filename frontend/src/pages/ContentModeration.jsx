@@ -39,18 +39,32 @@ export default function ContentModeration() {
       const reportsData = response.data || []
       
       // Fetch additional info for each report (deck/card details)
+      // Use snapshot info from report if available, otherwise fetch from API
       const reportsWithDetails = await Promise.all(
         reportsData.map(async (report) => {
           try {
+            // If report has snapshot info, use it (item was deleted)
+            if (report.item_title && report.item_owner_username) {
+              return {
+                ...report,
+                itemTitle: report.item_title,
+                itemDescription: report.report_type === 'deck' ? 'Nội dung đã bị xóa' : 'Thẻ đã bị xóa',
+                itemOwner: report.item_owner_username,
+                itemOwnerId: report.item_owner_id,
+                cards: []
+              }
+            }
+            
+            // Otherwise, fetch from API
             if (report.report_type === 'deck') {
               const deckRes = await api.get(`/api/flashcards/sets/${report.reported_item_id}`).catch(() => null)
               const cardsRes = await api.get(`/api/flashcards/sets/${report.reported_item_id}/cards`).catch(() => ({ data: [] }))
               return {
                 ...report,
-                itemTitle: deckRes?.data?.title || 'Unknown Deck',
+                itemTitle: deckRes?.data?.title || report.item_title || 'Unknown Deck',
                 itemDescription: deckRes?.data?.description || '',
-                itemOwner: deckRes?.data?.owner_username || 'Unknown',
-                itemOwnerId: deckRes?.data?.owner_id || null,
+                itemOwner: deckRes?.data?.owner_username || report.item_owner_username || 'Unknown',
+                itemOwnerId: deckRes?.data?.owner_id || report.item_owner_id || null,
                 cards: cardsRes.data || []
               }
             } else {
@@ -62,28 +76,40 @@ export default function ContentModeration() {
                   ...report,
                   itemTitle: `${cardRes.data.front} / ${cardRes.data.back}`,
                   itemDescription: `Card in deck: ${deckRes?.data?.title || 'Unknown'}`,
-                  itemOwner: deckRes?.data?.owner_username || 'Unknown',
-                  itemOwnerId: deckRes?.data?.owner_id || null,
+                  itemOwner: deckRes?.data?.owner_username || report.item_owner_username || 'Unknown',
+                  itemOwnerId: deckRes?.data?.owner_id || report.item_owner_id || null,
                   cards: [cardRes.data]
                 }
               }
-            return {
-              ...report,
-              itemTitle: 'Unknown Card',
-              itemDescription: '',
-              itemOwner: 'Unknown',
-              itemOwnerId: null,
-              cards: []
-            }
+              // If card not found but has snapshot, use it
+              if (report.item_title) {
+                return {
+                  ...report,
+                  itemTitle: report.item_title,
+                  itemDescription: 'Thẻ đã bị xóa',
+                  itemOwner: report.item_owner_username || 'Unknown',
+                  itemOwnerId: report.item_owner_id || null,
+                  cards: []
+                }
+              }
+              return {
+                ...report,
+                itemTitle: 'Unknown Card',
+                itemDescription: '',
+                itemOwner: 'Unknown',
+                itemOwnerId: null,
+                cards: []
+              }
             }
           } catch (error) {
             console.error(`Error fetching details for report ${report.id}:`, error)
+            // Use snapshot info if available
             return {
               ...report,
-              itemTitle: 'Unknown',
+              itemTitle: report.item_title || 'Unknown',
               itemDescription: '',
-              itemOwner: 'Unknown',
-              itemOwnerId: null,
+              itemOwner: report.item_owner_username || 'Unknown',
+              itemOwnerId: report.item_owner_id || null,
               cards: []
             }
           }
