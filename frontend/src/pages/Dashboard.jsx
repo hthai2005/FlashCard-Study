@@ -173,7 +173,7 @@ export default function Dashboard() {
           {/* Header */}
           <div className="flex flex-wrap justify-between items-center gap-4">
             <p className="text-gray-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em] min-w-72">
-              Dashboard
+              Trang Chủ
             </p>
           </div>
 
@@ -182,23 +182,23 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-white/10 bg-white dark:bg-background-dark">
                 <p className="text-gray-600 dark:text-gray-300 text-base font-medium leading-normal">
-                  Current Study Streak
+                  Chuỗi Ngày Học
                 </p>
                 <p className="text-gray-900 dark:text-white tracking-light text-3xl font-bold leading-tight">
-                  {stats.streak} Days
+                  {stats.streak} Ngày
                 </p>
               </div>
               <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-white/10 bg-white dark:bg-background-dark">
                 <p className="text-gray-600 dark:text-gray-300 text-base font-medium leading-normal">
-                  Total Cards Mastered
+                  Tổng Thẻ Đã Thành Thạo
                 </p>
                 <p className="text-gray-900 dark:text-white tracking-light text-3xl font-bold leading-tight">
-                  {stats.totalMastered} Cards
+                  {stats.totalMastered} Thẻ
                 </p>
               </div>
               <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-white/10 bg-white dark:bg-background-dark">
                 <p className="text-gray-600 dark:text-gray-300 text-base font-medium leading-normal">
-                  Overall Accuracy
+                  Độ Chính Xác Tổng Thể
                 </p>
                 <p className="text-gray-900 dark:text-white tracking-light text-3xl font-bold leading-tight">
                   {stats.accuracy}%
@@ -207,7 +207,7 @@ export default function Dashboard() {
               <div className="flex flex-col gap-2 rounded-xl p-6 border border-gray-200 dark:border-white/10 bg-white dark:bg-background-dark">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-gray-600 dark:text-gray-300 text-base font-medium leading-normal">
-                    Daily Goal
+                    Mục Tiêu Hàng Ngày
                   </p>
                   <p className="text-gray-900 dark:text-white text-sm font-semibold">
                     {stats.dailyProgress} / {stats.dailyGoal}
@@ -229,8 +229,8 @@ export default function Dashboard() {
                 </div>
                 <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
                   {stats.dailyGoal - stats.dailyProgress > 0
-                    ? `${stats.dailyGoal - stats.dailyProgress} cards remaining`
-                    : 'Goal achieved! 🎉'}
+                    ? `${stats.dailyGoal - stats.dailyProgress} thẻ còn lại`
+                    : 'Đã đạt mục tiêu! 🎉'}
                 </p>
               </div>
             </div>
@@ -241,7 +241,7 @@ export default function Dashboard() {
             <div className="flex flex-col gap-6 rounded-xl border border-gray-200 dark:border-white/10 p-6 bg-white dark:bg-background-dark">
               <div className="flex flex-wrap justify-between items-center gap-4">
                 <h2 className="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em]">
-                  Study Performance
+                  Hiệu Suất Học Tập
                 </h2>
                 <div className="flex gap-2 p-1 bg-gray-100 dark:bg-white/10 rounded-lg">
                   <button
@@ -257,7 +257,7 @@ export default function Dashboard() {
                         ? 'text-primary'
                         : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                     }`}>
-                      Last 7 Days
+                      7 Ngày Qua
                     </p>
                   </button>
                   <button
@@ -273,7 +273,7 @@ export default function Dashboard() {
                         ? 'text-primary'
                         : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                     }`}>
-                      Last 30 Days
+                      30 Ngày Qua
                     </p>
                   </button>
                   <button
@@ -289,7 +289,7 @@ export default function Dashboard() {
                         ? 'text-primary'
                         : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                     }`}>
-                      All Time
+                      Tất Cả
                     </p>
                   </button>
                 </div>
@@ -329,7 +329,7 @@ export default function Dashboard() {
                         dataKey="cards_studied" 
                         stroke="#3b82f6" 
                         strokeWidth={2}
-                        name="Cards Studied"
+                        name="Thẻ Đã Học"
                         dot={{ r: 4 }}
                         activeDot={{ r: 6 }}
                       />
@@ -338,7 +338,7 @@ export default function Dashboard() {
                         dataKey="cards_correct" 
                         stroke="#10b981" 
                         strokeWidth={2}
-                        name="Cards Correct"
+                        name="Thẻ Đúng"
                         dot={{ r: 4 }}
                         activeDot={{ r: 6 }}
                       />

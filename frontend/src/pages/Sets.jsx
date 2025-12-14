@@ -246,7 +246,7 @@ export default function Sets() {
       const response = await api.get('/api/flashcards/sets')
       setSets(response.data)
     } catch (error) {
-      toast.error('Failed to load flashcard sets')
+      toast.error('Không thể tải danh sách bộ thẻ')
     } finally {
       setLoading(false)
     }
@@ -256,47 +256,47 @@ export default function Sets() {
     e.preventDefault()
     try {
       await api.post('/api/flashcards/sets', newSet)
-      toast.success('Flashcard set created!')
+      toast.success('Đã tạo bộ thẻ thành công!')
       setShowCreateModal(false)
       setNewSet({ title: '', description: '', is_public: false })
       fetchSets()
     } catch (error) {
-      toast.error('Failed to create set')
+      toast.error('Không thể tạo bộ thẻ')
     }
   }
 
   const handleDeleteSet = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this set?')) return
+    if (!window.confirm('Bạn có chắc muốn xóa bộ thẻ này?')) return
     try {
       await api.delete(`/api/flashcards/sets/${id}`)
-      toast.success('Set deleted')
+      toast.success('Đã xóa bộ thẻ')
       fetchSets()
     } catch (error) {
-      toast.error('Failed to delete set')
+      toast.error('Không thể xóa bộ thẻ')
     }
   }
 
   const handleFileImport = async (e) => {
     e.preventDefault()
     if (!importData.set_id) {
-      toast.error('Please select a set')
+      toast.error('Vui lòng chọn một bộ thẻ')
       return
     }
     try {
       await api.post('/api/ai/import', importData)
-      toast.success('Flashcards imported successfully!')
+      toast.success('Đã nhập flashcard thành công!')
       setShowImportModal(false)
       setImportData({ set_id: null, file_content: '' })
       fetchSets()
     } catch (error) {
-      toast.error('Failed to import flashcards')
+      toast.error('Không thể nhập flashcard')
     }
   }
 
   const handleAIGenerate = async (e) => {
     e.preventDefault()
     if (!aiData.topic) {
-      toast.error('Please enter a topic')
+      toast.error('Vui lòng nhập chủ đề')
       return
     }
     try {
@@ -313,12 +313,12 @@ export default function Sets() {
         await api.post(`/api/flashcards/sets/${setResponse.data.id}/cards`, card)
       }
       
-      toast.success(`Generated and added ${flashcards.length} flashcards!`)
+      toast.success(`Đã tạo và thêm ${flashcards.length} flashcard!`)
       setShowAIModal(false)
       setAiData({ topic: '', number_of_cards: 10, difficulty: 'medium' })
       fetchSets()
     } catch (error) {
-      toast.error('Failed to generate flashcards')
+      toast.error('Không thể tạo flashcard')
     }
   }
 
@@ -380,13 +380,13 @@ export default function Sets() {
             <>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <h1 className="text-slate-900 dark:text-white text-4xl font-black tracking-[-0.033em]">
-                  My Decks
+                  Bộ Thẻ Của Tôi
                 </h1>
                 <Link
                   to="/sets/create"
                   className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors"
                 >
-                  <span className="truncate">Create New Deck</span>
+                  <span className="truncate">Tạo Bộ Thẻ Mới</span>
                 </Link>
               </div>
 
@@ -399,7 +399,7 @@ export default function Sets() {
                       </div>
                       <input
                         className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-full placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 text-base font-normal"
-                        placeholder="Search my decks..."
+                        placeholder="Tìm kiếm bộ thẻ của tôi..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
@@ -420,7 +420,7 @@ export default function Sets() {
                         ? 'text-primary'
                         : 'text-slate-700 dark:text-slate-300'
                     }`}>
-                      Last Studied
+                      Lần Học Cuối
                     </p>
                     <span className="material-symbols-outlined text-slate-500 dark:text-slate-400">expand_more</span>
                   </button>
@@ -437,7 +437,7 @@ export default function Sets() {
                         ? 'text-primary'
                         : 'text-slate-700 dark:text-slate-300'
                     }`}>
-                      Alphabetical
+                      Theo Bảng Chữ Cái
                     </p>
                     <span className="material-symbols-outlined text-slate-500 dark:text-slate-400">expand_more</span>
                   </button>
@@ -447,13 +447,13 @@ export default function Sets() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {sortedSets.length === 0 ? (
                   <div className="col-span-full text-center py-12">
-                    <p className="text-gray-500 dark:text-gray-400 mb-4">No flashcard sets found</p>
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">Không tìm thấy bộ thẻ nào</p>
                     <Link
                       to="/sets/create"
                       className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
                     >
                       <span className="material-symbols-outlined">add</span>
-                      Create Your First Set
+                      Tạo Bộ Thẻ Đầu Tiên
                     </Link>
                   </div>
                 ) : (
@@ -474,12 +474,12 @@ export default function Sets() {
                             {set.title}
                           </p>
                           <p className="text-slate-500 dark:text-slate-400 text-sm">
-                            {cardCount} Cards
+                            {cardCount} Thẻ
                           </p>
                         </div>
                         <div className="flex flex-col gap-2">
                           <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
-                            <span>Mastery</span>
+                            <span>Thành Thạo</span>
                             <span>{mastery}%</span>
                           </div>
                           <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
@@ -495,14 +495,14 @@ export default function Sets() {
                             className="flex items-center justify-center gap-2 h-10 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                           >
                             <span className="material-symbols-outlined text-base">visibility</span>
-                            <span>View</span>
+                            <span>Xem</span>
                           </button>
                           <button
                             onClick={() => navigate(`/study/${set.id}`)}
                             className="flex flex-1 items-center justify-center gap-2 h-10 px-4 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors"
                           >
                             <span className="material-symbols-outlined">style</span>
-                            <span>Study</span>
+                            <span>Học</span>
                           </button>
                           <button
                             onClick={() => handleDeleteSet(set.id)}
@@ -525,18 +525,18 @@ export default function Sets() {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Create New Set</h2>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Tạo Bộ Thẻ Mới</h2>
             <form onSubmit={handleCreateSet} className="space-y-4">
               <input
                 type="text"
-                placeholder="Title"
+                placeholder="Tiêu Đề"
                 value={newSet.title}
                 onChange={(e) => setNewSet({ ...newSet, title: e.target.value })}
                 className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
                 required
               />
               <textarea
-                placeholder="Description"
+                placeholder="Mô Tả"
                 value={newSet.description}
                 onChange={(e) => setNewSet({ ...newSet, description: e.target.value })}
                 className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
@@ -549,21 +549,21 @@ export default function Sets() {
                   onChange={(e) => setNewSet({ ...newSet, is_public: e.target.checked })}
                   className="mr-2"
                 />
-                Public
+                Công Khai
               </label>
               <div className="flex gap-2">
                 <button
                   type="submit"
                   className="flex-1 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg"
                 >
-                  Create
+                  Tạo
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
                   className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
                 >
-                  Cancel
+                  Hủy
                 </button>
               </div>
             </form>
@@ -574,7 +574,7 @@ export default function Sets() {
       {showImportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Import Flashcards</h2>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Nhập Flashcard</h2>
             <form onSubmit={handleFileImport} className="space-y-4">
               <select
                 value={importData.set_id || ''}
@@ -582,7 +582,7 @@ export default function Sets() {
                 className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
                 required
               >
-                <option value="">Select a set</option>
+                <option value="">Chọn một bộ thẻ</option>
                 {sets.map((set) => (
                   <option key={set.id} value={set.id}>
                     {set.title}
@@ -590,7 +590,7 @@ export default function Sets() {
                 ))}
               </select>
               <textarea
-                placeholder="Paste CSV or JSON content here..."
+                placeholder="Dán nội dung CSV hoặc JSON vào đây..."
                 value={importData.file_content}
                 onChange={(e) => setImportData({ ...importData, file_content: e.target.value })}
                 className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
@@ -602,14 +602,14 @@ export default function Sets() {
                   type="submit"
                   className="flex-1 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg"
                 >
-                  Import
+                  Nhập
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowImportModal(false)}
                   className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
                 >
-                  Cancel
+                  Hủy
                 </button>
               </div>
             </form>
@@ -620,11 +620,11 @@ export default function Sets() {
       {showAIModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">AI Generate Flashcards</h2>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Tạo Flashcard Bằng AI</h2>
             <form onSubmit={handleAIGenerate} className="space-y-4">
               <input
                 type="text"
-                placeholder="Topic"
+                placeholder="Chủ Đề"
                 value={aiData.topic}
                 onChange={(e) => setAiData({ ...aiData, topic: e.target.value })}
                 className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
@@ -632,7 +632,7 @@ export default function Sets() {
               />
               <input
                 type="number"
-                placeholder="Number of cards"
+                placeholder="Số lượng thẻ"
                 value={aiData.number_of_cards}
                 onChange={(e) => setAiData({ ...aiData, number_of_cards: parseInt(e.target.value) })}
                 className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
@@ -645,23 +645,23 @@ export default function Sets() {
                 onChange={(e) => setAiData({ ...aiData, difficulty: e.target.value })}
                 className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
               >
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
+                <option value="easy">Dễ</option>
+                <option value="medium">Trung Bình</option>
+                <option value="hard">Khó</option>
               </select>
               <div className="flex gap-2">
                 <button
                   type="submit"
                   className="flex-1 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg"
                 >
-                  Generate
+                  Tạo
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAIModal(false)}
                   className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
                 >
-                  Cancel
+                  Hủy
                 </button>
               </div>
             </form>

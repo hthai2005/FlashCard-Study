@@ -19,10 +19,28 @@ class UserCreate(UserBase):
             raise ValueError("Password cannot be longer than 72 bytes")
         return v
 
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+    
+    @field_validator('new_password')
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if len(v) < 6:
+            raise ValueError("Password must be at least 6 characters long")
+        if len(v.encode('utf-8')) > 72:
+            raise ValueError("Password cannot be longer than 72 bytes")
+        return v
+
 class UserResponse(UserBase):
     id: int
     is_active: bool
     is_admin: bool
+    avatar_url: Optional[str] = None
     created_at: datetime
     
     class Config:
@@ -107,10 +125,17 @@ class StudySessionResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class StudySessionComplete(BaseModel):
+    cards_studied: int
+    cards_correct: int
+    cards_incorrect: int
+    duration_minutes: int
+
 class StudyProgress(BaseModel):
     total_cards: int
     cards_to_review: int
     cards_mastered: int
+    cards_studied: int  # Number of unique cards studied by this user
     daily_goal: int
     daily_progress: int
     streak_days: int
@@ -125,7 +150,7 @@ class StudySessionDataPoint(BaseModel):
 class StudyActivityDataPoint(BaseModel):
     date: str
     cards_studied: int
-    intensity: int
+    intensity: int  # 0-4 for heatmap visualization
 
 # Leaderboard schemas
 class LeaderboardEntry(BaseModel):

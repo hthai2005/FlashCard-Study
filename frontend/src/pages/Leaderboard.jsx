@@ -30,7 +30,7 @@ export default function Leaderboard() {
         }
       }
     } catch (error) {
-      toast.error('Failed to load leaderboard')
+      toast.error('Không thể tải bảng xếp hạng')
     } finally {
       setLoading(false)
     }
@@ -52,31 +52,31 @@ export default function Leaderboard() {
       <TopNav />
       <main className="flex-1 p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-7xl">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Leaderboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Bảng Xếp Hạng</h1>
 
           {/* My Rank Card */}
           {myRank && (
             <div className="bg-gradient-to-r from-primary-500 to-primary-700 rounded-xl shadow-lg p-6 mb-8 text-white">
-              <h2 className="text-xl font-semibold mb-4">Your Stats</h2>
+              <h2 className="text-xl font-semibold mb-4">Thống Kê Của Bạn</h2>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div>
-                  <div className="text-sm opacity-90">Rank</div>
+                  <div className="text-sm opacity-90">Hạng</div>
                   <div className="text-2xl font-bold">#{myRank.rank || 'N/A'}</div>
                 </div>
                 <div>
-                  <div className="text-sm opacity-90">Points</div>
+                  <div className="text-sm opacity-90">Điểm</div>
                   <div className="text-2xl font-bold">{myRank.points}</div>
                 </div>
                 <div>
-                  <div className="text-sm opacity-90">Study Time</div>
+                  <div className="text-sm opacity-90">Thời Gian Học</div>
                   <div className="text-2xl font-bold">{myRank.total_study_time}m</div>
                 </div>
                 <div>
-                  <div className="text-sm opacity-90">Cards Studied</div>
+                  <div className="text-sm opacity-90">Thẻ Đã Học</div>
                   <div className="text-2xl font-bold">{myRank.total_cards_studied}</div>
                 </div>
                 <div>
-                  <div className="text-sm opacity-90">Streak</div>
+                  <div className="text-sm opacity-90">Chuỗi Ngày</div>
                   <div className="text-2xl font-bold">🔥 {myRank.streak_days}</div>
                 </div>
               </div>
@@ -89,22 +89,22 @@ export default function Leaderboard() {
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Rank
+                    Hạng
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Username
+                    Tên Đăng Nhập
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Points
+                    Điểm
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Study Time
+                    Thời Gian Học
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Cards Studied
+                    Thẻ Đã Học
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Streak
+                    Chuỗi Ngày
                   </th>
                 </tr>
               </thead>
@@ -121,13 +121,13 @@ export default function Leaderboard() {
                       <div className="text-sm text-gray-900 dark:text-white">{entry.points}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 dark:text-white">{entry.total_study_time} min</div>
+                      <div className="text-sm text-gray-900 dark:text-white">{entry.total_study_time} phút</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 dark:text-white">{entry.total_cards_studied}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 dark:text-white">🔥 {entry.streak_days} days</div>
+                      <div className="text-sm text-gray-900 dark:text-white">🔥 {entry.streak_days} ngày</div>
                     </td>
                   </tr>
                 ))}

@@ -102,7 +102,7 @@ export default function UserManagement() {
       }
     } catch (error) {
       console.error('Failed to load users:', error)
-      toast.error('Failed to load users')
+      toast.error('Không thể tải danh sách người dùng')
       setUsers([])
       setTotalUsers(0)
     } finally {
@@ -127,13 +127,13 @@ export default function UserManagement() {
   }
 
   const handleDelete = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    if (window.confirm('Bạn có chắc muốn xóa người dùng này?')) {
       try {
         await api.delete(`/api/admin/users/${userId}`)
-        toast.success('User deleted successfully')
+        toast.success('Đã xóa người dùng thành công')
         fetchUsers()
       } catch (error) {
-        toast.error('Failed to delete user')
+        toast.error('Không thể xóa người dùng')
       }
     }
   }
@@ -154,15 +154,15 @@ export default function UserManagement() {
     
     // Validation
     if (!editForm.username.trim()) {
-      toast.error('Username is required')
+      toast.error('Tên đăng nhập là bắt buộc')
       return
     }
     if (!editForm.email.trim()) {
-      toast.error('Email is required')
+      toast.error('Email là bắt buộc')
       return
     }
     if (!editForm.email.includes('@')) {
-      toast.error('Invalid email format')
+      toast.error('Định dạng email không hợp lệ')
       return
     }
     
@@ -173,12 +173,12 @@ export default function UserManagement() {
         is_admin: editForm.is_admin,
         is_active: editForm.is_active
       })
-      toast.success('User updated successfully')
+      toast.success('Đã cập nhật người dùng thành công')
       setShowEditModal(false)
       setEditingUser(null)
       fetchUsers()
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || 'Failed to update user'
+      const errorMessage = error.response?.data?.detail || 'Không thể cập nhật người dùng'
       toast.error(errorMessage)
     }
   }
@@ -216,7 +216,7 @@ export default function UserManagement() {
 
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark">
-      <AdminHeader pageTitle="User Management" />
+      <AdminHeader pageTitle="Quản Lý Người Dùng" />
 
       <div className="flex h-[calc(100vh-4rem)] grow">
       <AdminSidebar />
@@ -228,14 +228,14 @@ export default function UserManagement() {
           {/* PageHeading */}
           <header className="flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-gray-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">
-              User Management
+              Quản Lý Người Dùng
             </h1>
             <button
-              onClick={() => toast.info('Add user functionality coming soon!')}
+              onClick={() => toast.info('Chức năng thêm người dùng sẽ sớm có mặt!')}
               className="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-primary text-[#111618] text-sm font-bold leading-normal tracking-[0.015em]"
             >
               <span className="material-symbols-outlined">add</span>
-              <span className="truncate">Add User</span>
+              <span className="truncate">Thêm Người Dùng</span>
             </button>
           </header>
 
@@ -250,7 +250,7 @@ export default function UserManagement() {
                   </div>
                   <input
                     className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-l-0 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:border-primary h-full placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 rounded-l-none pl-2 text-base font-normal leading-normal"
-                    placeholder="Search by name or email..."
+                    placeholder="Tìm kiếm theo tên hoặc email..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -269,7 +269,7 @@ export default function UserManagement() {
                   }}
                   className="flex h-12 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-4 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
-                  <p className="text-gray-900 dark:text-white text-sm font-medium leading-normal">Role: {roleFilter}</p>
+                  <p className="text-gray-900 dark:text-white text-sm font-medium leading-normal">Vai trò: {roleFilter === 'All' ? 'Tất Cả' : roleFilter === 'Admin' ? 'Quản Trị' : 'Người Dùng'}</p>
                   <span className="material-symbols-outlined text-gray-600 dark:text-gray-400">arrow_drop_down</span>
                 </button>
                 {showRoleDropdown && (
@@ -288,7 +288,7 @@ export default function UserManagement() {
                             : 'text-gray-900 dark:text-white'
                         }`}
                       >
-                        {role}
+                        {role === 'All' ? 'Tất Cả' : role === 'Admin' ? 'Quản Trị' : 'Người Dùng'}
                       </button>
                     ))}
                   </div>
@@ -304,7 +304,7 @@ export default function UserManagement() {
                   }}
                   className="flex h-12 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-4 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
-                  <p className="text-gray-900 dark:text-white text-sm font-medium leading-normal">Status: {statusFilter}</p>
+                  <p className="text-gray-900 dark:text-white text-sm font-medium leading-normal">Trạng thái: {statusFilter === 'All' ? 'Tất Cả' : statusFilter === 'Active' ? 'Hoạt Động' : 'Đã Khóa'}</p>
                   <span className="material-symbols-outlined text-gray-600 dark:text-gray-400">arrow_drop_down</span>
                 </button>
                 {showStatusDropdown && (
@@ -323,7 +323,7 @@ export default function UserManagement() {
                             : 'text-gray-900 dark:text-white'
                         }`}
                       >
-                        {status}
+                        {status === 'All' ? 'Tất Cả' : status === 'Active' ? 'Hoạt Động' : 'Đã Khóa'}
                       </button>
                     ))}
                   </div>
@@ -340,7 +340,7 @@ export default function UserManagement() {
                 className="flex h-12 shrink-0 items-center justify-center gap-x-2 rounded-lg border border-gray-300 dark:border-gray-600 px-4 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
               >
                 <span className="material-symbols-outlined">close</span>
-                <p className="text-sm font-medium leading-normal">Clear Filters</p>
+                <p className="text-sm font-medium leading-normal">Xóa Bộ Lọc</p>
               </button>
             </div>
           </div>
@@ -360,20 +360,20 @@ export default function UserManagement() {
                       />
                     </th>
                     <th className="px-4 py-3 text-left text-gray-900 dark:text-white text-sm font-medium leading-normal">
-                      User
+                      Người Dùng
                     </th>
-                    <th className="px-4 py-3 text-left text-gray-900 dark:text-white text-sm font-medium leading-normal">Role</th>
+                    <th className="px-4 py-3 text-left text-gray-900 dark:text-white text-sm font-medium leading-normal">Vai Trò</th>
                     <th className="px-4 py-3 text-left text-gray-900 dark:text-white text-sm font-medium leading-normal">
-                      Date Joined
-                    </th>
-                    <th className="px-4 py-3 text-left text-gray-900 dark:text-white text-sm font-medium leading-normal">
-                      Last Active
+                      Ngày Tham Gia
                     </th>
                     <th className="px-4 py-3 text-left text-gray-900 dark:text-white text-sm font-medium leading-normal">
-                      Status
+                      Hoạt Động Cuối
                     </th>
                     <th className="px-4 py-3 text-left text-gray-900 dark:text-white text-sm font-medium leading-normal">
-                      Actions
+                      Trạng Thái
+                    </th>
+                    <th className="px-4 py-3 text-left text-gray-900 dark:text-white text-sm font-medium leading-normal">
+                      Thao Tác
                     </th>
                   </tr>
                 </thead>
@@ -381,7 +381,7 @@ export default function UserManagement() {
                   {paginatedUsers.length === 0 ? (
                     <tr>
                       <td colSpan="7" className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                        No users found
+                        Không tìm thấy người dùng
                       </td>
                     </tr>
                   ) : (
@@ -410,13 +410,13 @@ export default function UserManagement() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-300 text-sm font-normal leading-normal">
-                          {user.role}
+                          {user.role === 'Admin' ? 'Quản Trị' : 'Người Dùng'}
                         </td>
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-300 text-sm font-normal leading-normal">
                           {user.date_joined}
                         </td>
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-300 text-sm font-normal leading-normal">
-                          {user.last_active}
+                          {user.last_active === 'Today' ? 'Hôm nay' : user.last_active === 'Yesterday' ? 'Hôm qua' : user.last_active === 'Never' ? 'Chưa bao giờ' : user.last_active.includes('days ago') ? user.last_active.replace('days ago', 'ngày trước') : user.last_active}
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -428,7 +428,7 @@ export default function UserManagement() {
                                 : 'bg-red-500/20 text-red-600 dark:text-red-400'
                             }`}
                           >
-                            {user.status}
+                            {user.status === 'Active' ? 'Hoạt Động' : 'Đã Khóa'}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-300 text-sm leading-normal">
@@ -464,7 +464,7 @@ export default function UserManagement() {
           {/* Pagination */}
           <div className="mt-6 flex items-center justify-between">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {(currentPage - 1) * usersPerPage + 1} to {Math.min(currentPage * usersPerPage, filteredUsers.length)} of {filteredUsers.length} users
+              Hiển thị {(currentPage - 1) * usersPerPage + 1} đến {Math.min(currentPage * usersPerPage, filteredUsers.length)} trong tổng số {filteredUsers.length} người dùng
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -509,7 +509,7 @@ export default function UserManagement() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Edit User</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Chỉnh Sửa Người Dùng</h2>
               <button
                 onClick={() => {
                   setShowEditModal(false)
@@ -524,14 +524,14 @@ export default function UserManagement() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Username
+                  Tên Đăng Nhập
                 </label>
                 <input
                   type="text"
                   value={editForm.username}
                   onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Enter username"
+                  placeholder="Nhập tên đăng nhập"
                 />
               </div>
 
@@ -544,7 +544,7 @@ export default function UserManagement() {
                   value={editForm.email}
                   onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Enter email"
+                  placeholder="Nhập email"
                 />
               </div>
 
@@ -556,7 +556,7 @@ export default function UserManagement() {
                     onChange={(e) => setEditForm({ ...editForm, is_admin: e.target.checked })}
                     className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary"
                   />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Admin Role</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Vai Trò Quản Trị</span>
                 </label>
               </div>
 
@@ -568,7 +568,7 @@ export default function UserManagement() {
                     onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })}
                     className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary"
                   />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Active Status</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Trạng Thái Hoạt Động</span>
                 </label>
               </div>
             </div>
@@ -581,13 +581,13 @@ export default function UserManagement() {
                 }}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 onClick={handleSaveEdit}
                 className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
               >
-                Save Changes
+                Lưu Thay Đổi
               </button>
             </div>
           </div>

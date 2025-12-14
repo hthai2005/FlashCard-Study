@@ -30,7 +30,7 @@ export default function AdminSidebar() {
           }`}
         >
           <span className="material-symbols-outlined">dashboard</span>
-          <p className="text-sm font-medium">Dashboard</p>
+          <p className="text-sm font-medium">Trang Chủ</p>
         </Link>
         <Link
           to="/admin/users"
@@ -41,7 +41,7 @@ export default function AdminSidebar() {
           }`}
         >
           <span className="material-symbols-outlined">group</span>
-          <p className="text-sm font-medium">User Management</p>
+          <p className="text-sm font-medium">Quản Lý Người Dùng</p>
         </Link>
         <Link
           to="/admin/sets"
@@ -52,7 +52,7 @@ export default function AdminSidebar() {
           }`}
         >
           <span className="material-symbols-outlined">style</span>
-          <p className="text-sm font-medium">Flashcard Sets</p>
+          <p className="text-sm font-medium">Bộ Thẻ</p>
         </Link>
         <Link
           to="/admin/moderation"
@@ -63,7 +63,7 @@ export default function AdminSidebar() {
           }`}
         >
           <span className="material-symbols-outlined">flag</span>
-          <p className="text-sm font-medium">Content Moderation</p>
+          <p className="text-sm font-medium">Kiểm Duyệt Nội Dung</p>
         </Link>
       </nav>
 
@@ -73,14 +73,14 @@ export default function AdminSidebar() {
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer w-full"
         >
           <span className="material-symbols-outlined">exit_to_app</span>
-          <p className="text-sm font-medium">Exit Admin</p>
+          <p className="text-sm font-medium">Thoát Quản Trị</p>
         </button>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer w-full"
         >
           <span className="material-symbols-outlined">logout</span>
-          <p className="text-sm font-medium">Logout</p>
+          <p className="text-sm font-medium">Đăng Xuất</p>
         </button>
       </div>
     </aside>

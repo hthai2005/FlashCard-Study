@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models, schemas, auth
+from app.schemas import AIGenerateRequest, ImportRequest
 import os
 from openai import OpenAI
 
@@ -16,7 +17,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY")) if os.getenv("OPENAI_API_KE
 
 @router.post("/generate")
 def generate_flashcards(
-    request: schemas.AIGenerateRequest,
+    request: AIGenerateRequest,
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -68,7 +69,7 @@ Make sure the flashcards are educational and cover important aspects of {request
 
 @router.post("/import")
 def import_flashcards(
-    request: schemas.ImportRequest,
+    request: ImportRequest,
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):

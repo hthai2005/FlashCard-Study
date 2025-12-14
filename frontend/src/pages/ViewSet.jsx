@@ -73,7 +73,7 @@ export default function ViewSet() {
   if (isAdmin) {
   return (
       <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark">
-        <AdminHeader pageTitle={setInfo?.title || 'View Set'} />
+        <AdminHeader pageTitle={setInfo?.title || 'Xem Bộ Thẻ'} />
 
         <div className="flex h-[calc(100vh-4rem)] grow">
           <AdminSidebar />
@@ -87,7 +87,7 @@ export default function ViewSet() {
                 onClick={() => navigate(isAdmin ? '/admin/sets' : '/sets')}
                 className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg"
               >
-                Back to Sets
+                Quay Lại Danh Sách
               </button>
             </div>
           ) : (
@@ -172,7 +172,7 @@ export default function ViewSet() {
                 onClick={() => navigate('/sets')}
                 className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg"
               >
-                Back to Sets
+                Quay Lại Danh Sách
               </button>
             </div>
           ) : (

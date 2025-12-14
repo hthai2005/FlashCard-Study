@@ -36,7 +36,7 @@ export default function CreateSet() {
       const newCards = cards.filter((_, i) => i !== index)
       setCards(newCards)
     } else {
-      toast.error('At least one card is required')
+      toast.error('Cần ít nhất một thẻ')
     }
   }
 
@@ -44,13 +44,13 @@ export default function CreateSet() {
     e.preventDefault()
     
     if (!setData.title.trim()) {
-      toast.error('Please enter a set title')
+      toast.error('Vui lòng nhập tiêu đề bộ thẻ')
       return
     }
 
     const validCards = cards.filter(card => card.front.trim() && card.back.trim())
     if (validCards.length === 0) {
-      toast.error('Please add at least one card with both term and definition')
+      toast.error('Vui lòng thêm ít nhất một thẻ có cả thuật ngữ và định nghĩa')
       return
     }
 
@@ -67,10 +67,10 @@ export default function CreateSet() {
         })
       }
 
-      toast.success(`Created set with ${validCards.length} cards!`)
+      toast.success(`Đã tạo bộ thẻ với ${validCards.length} thẻ!`)
       navigate('/sets')
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create set')
+      toast.error(error.response?.data?.detail || 'Không thể tạo bộ thẻ')
     }
   }
 
@@ -84,10 +84,10 @@ export default function CreateSet() {
           <div className="flex flex-wrap justify-between gap-4 pb-8">
             <div className="flex min-w-72 flex-col gap-2">
               <h1 className="text-black dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">
-                Create New Flashcard Set
+                Tạo Bộ Thẻ Mới
               </h1>
               <p className="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">
-                Fill in the details below to start your new study set.
+                Điền thông tin bên dưới để bắt đầu bộ học mới.
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -95,14 +95,14 @@ export default function CreateSet() {
                 onClick={() => navigate('/sets')}
                 className="flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-slate-200 dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 onClick={handleSubmit}
                 className="flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-primary text-sm font-bold text-white hover:bg-primary/90 transition-colors"
               >
                 <span className="material-symbols-outlined text-xl">add_circle</span>
-                Create Set
+                Tạo Bộ Thẻ
               </button>
             </div>
           </div>
@@ -112,12 +112,12 @@ export default function CreateSet() {
             <div className="lg:col-span-4">
               <div className="sticky top-24">
                 <h2 className="text-black dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] pb-4">
-                  Set Details
+                  Chi Tiết Bộ Thẻ
                 </h2>
                 <div className="space-y-6">
                   <label className="flex flex-col w-full">
                     <p className="text-slate-800 dark:text-slate-200 text-base font-medium leading-normal pb-2">
-                      Set Title
+                      Tiêu Đề Bộ Thẻ
                     </p>
                     <input
                       className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-black dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/50 h-12 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-[15px] text-base font-normal leading-normal"
@@ -129,7 +129,7 @@ export default function CreateSet() {
 
                   <label className="flex flex-col w-full">
                     <p className="text-slate-800 dark:text-slate-200 text-base font-medium leading-normal pb-2">
-                      Set Description (optional)
+                      Mô Tả Bộ Thẻ (tùy chọn)
                     </p>
                     <textarea
                       className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-black dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/50 min-h-36 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-[15px] text-base font-normal leading-normal"
@@ -141,7 +141,7 @@ export default function CreateSet() {
 
                   <div className="flex flex-col w-full">
                     <p className="text-slate-800 dark:text-slate-200 text-base font-medium leading-normal pb-2">
-                      Visibility
+                      Hiển Thị
                     </p>
                     <div className="flex gap-2 rounded-lg bg-slate-200 dark:bg-slate-800 p-1">
                       <button
@@ -154,7 +154,7 @@ export default function CreateSet() {
                         }`}
                       >
                         <span className="material-symbols-outlined text-lg">lock</span>
-                        Private
+                        Riêng Tư
                       </button>
                       <button
                         type="button"
@@ -166,7 +166,7 @@ export default function CreateSet() {
                         }`}
                       >
                         <span className="material-symbols-outlined text-lg">public</span>
-                        Public
+                        Công Khai
                       </button>
                     </div>
                   </div>
@@ -177,7 +177,7 @@ export default function CreateSet() {
             {/* Right Side - Cards */}
             <div className="lg:col-span-8">
               <h2 className="text-black dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] pb-4">
-                Cards in this Set
+                Thẻ Trong Bộ Này
               </h2>
               <div className="flex flex-col gap-4">
                 {cards.map((card, index) => (
@@ -196,22 +196,22 @@ export default function CreateSet() {
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                       <label className="flex flex-col w-full">
                         <p className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
-                          Term
+                          Thuật Ngữ
                         </p>
                         <textarea
                           className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-black dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 min-h-24 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-base font-normal"
-                          placeholder="Enter Term"
+                          placeholder="Nhập Thuật Ngữ"
                           value={card.front}
                           onChange={(e) => handleCardChange(index, 'front', e.target.value)}
                         />
                       </label>
                       <label className="flex flex-col w-full">
                         <p className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
-                          Definition
+                          Định Nghĩa
                         </p>
                         <textarea
                           className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-black dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 min-h-24 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-base font-normal"
-                          placeholder="Enter Definition"
+                          placeholder="Nhập Định Nghĩa"
                           value={card.back}
                           onChange={(e) => handleCardChange(index, 'back', e.target.value)}
                         />
@@ -233,7 +233,7 @@ export default function CreateSet() {
                   className="mt-4 flex items-center justify-center gap-2 w-full h-14 rounded-lg bg-primary/10 border-2 border-dashed border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50 transition-colors"
                 >
                   <span className="material-symbols-outlined text-2xl">add</span>
-                  <span className="font-bold">Add Card</span>
+                  <span className="font-bold">Thêm Thẻ</span>
                 </button>
               </div>
             </div>

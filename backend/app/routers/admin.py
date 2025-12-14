@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List
 from app.database import get_db
 from app import models, schemas, auth
+from app.schemas import UserResponse
 
 router = APIRouter()
 
@@ -54,7 +55,7 @@ def get_users(
         "count": len(users_with_activity)
     }
 
-@router.get("/users/{user_id}", response_model=schemas.UserResponse)
+@router.get("/users/{user_id}", response_model=UserResponse)
 def get_user(
     user_id: int,
     current_user: models.User = Depends(require_admin),
@@ -93,7 +94,7 @@ def delete_user(
     db.commit()
     return {"message": "User deleted successfully"}
 
-@router.put("/users/{user_id}", response_model=schemas.UserResponse)
+@router.put("/users/{user_id}", response_model=UserResponse)
 def update_user(
     user_id: int,
     user_update: dict,

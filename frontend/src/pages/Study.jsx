@@ -43,7 +43,7 @@ export default function Study() {
       const response = await api.post('/api/study/sessions', { set_id: parseInt(setId) })
       setSessionId(response.data.id)
     } catch (error) {
-      toast.error('Failed to start study session')
+      toast.error('Không thể bắt đầu phiên học')
     }
   }
 
@@ -56,7 +56,7 @@ export default function Study() {
       const cardsRes = await api.get(`/api/flashcards/sets/${setId}/cards`)
       setTotalCards(cardsRes.data.length)
     } catch (error) {
-      toast.error('Failed to load set information')
+      toast.error('Không thể tải thông tin bộ thẻ')
     }
   }
 
@@ -101,7 +101,7 @@ export default function Study() {
       }
     } catch (error) {
       console.error('Error fetching due cards:', error)
-      toast.error('Failed to load flashcards')
+      toast.error('Không thể tải flashcard')
       setCards([])
     }
   }
@@ -205,13 +205,13 @@ export default function Study() {
         })
       }
       
-      toast.success(`Study session completed! You studied ${finalStats.studied}/${cards.length} cards.`)
+      toast.success(`Hoàn thành phiên học! Bạn đã học ${finalStats.studied}/${cards.length} thẻ.`)
       setTimeout(() => {
         navigate('/dashboard')
       }, 2000)
     } catch (error) {
       console.error('Error completing session:', error)
-      toast.error('Failed to complete session')
+      toast.error('Không thể hoàn thành phiên học')
       // Still navigate even if API call fails
       setTimeout(() => {
         navigate('/dashboard')
@@ -220,14 +220,14 @@ export default function Study() {
   }
 
   const handleEndSession = async () => {
-    let progressMessage = 'Are you sure you want to end this session?'
+    let progressMessage = 'Bạn có chắc muốn kết thúc phiên học này?'
     
     // Use totalCards if available, otherwise use cards.length
     const totalCardsCount = totalCards > 0 ? totalCards : cards.length
     
     if (stats.studied > 0 && totalCardsCount > 0) {
       const percentage = Math.round((stats.studied / totalCardsCount) * 100)
-      progressMessage = `You have studied ${stats.studied}/${totalCardsCount} cards (${percentage}%). Do you want to end this session?`
+      progressMessage = `Bạn đã học ${stats.studied}/${totalCardsCount} thẻ (${percentage}%). Bạn có muốn kết thúc phiên học này?`
     }
     
     if (window.confirm(progressMessage)) {
@@ -245,12 +245,12 @@ export default function Study() {
         <TopNav />
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="text-center">
-            <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">No cards to review!</p>
+            <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">Không có thẻ nào để ôn tập!</p>
             <button
               onClick={() => navigate('/sets')}
               className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg"
             >
-              Back to Sets
+              Quay Lại Danh Sách
             </button>
           </div>
         </main>
@@ -284,7 +284,7 @@ export default function Study() {
                 onClick={handleEndSession}
                 className="flex items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal transition-colors hover:bg-primary/90"
               >
-                <span>End Session</span>
+                <span>Kết Thúc Phiên</span>
               </button>
             </div>
           </header>
@@ -297,7 +297,7 @@ export default function Study() {
           {/* Progress */}
           <div className="px-4">
             <div className="flex flex-col gap-2">
-              <p className="text-gray-600 dark:text-gray-300 text-sm font-medium">Progress</p>
+              <p className="text-gray-600 dark:text-gray-300 text-sm font-medium">Tiến Độ</p>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div
                   className="bg-primary h-2 rounded-full transition-all duration-300"
@@ -305,7 +305,7 @@ export default function Study() {
                 ></div>
               </div>
               <p className="text-gray-500 dark:text-gray-400 text-xs">
-                {stats.studied}/{totalCardsCount} cards reviewed
+                {stats.studied}/{totalCardsCount} thẻ đã ôn tập
               </p>
             </div>
           </div>
@@ -332,7 +332,7 @@ export default function Study() {
                             checkAnswer()
                           }
                         }}
-                        placeholder="Type your answer..."
+                        placeholder="Nhập câu trả lời của bạn..."
                         className={`w-full px-4 py-3 rounded-lg border-2 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/50 ${
                           answerFeedback === 'correct'
                             ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
@@ -347,13 +347,13 @@ export default function Study() {
                       {answerFeedback === 'correct' && (
                         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                           <span className="material-symbols-outlined">check_circle</span>
-                          <span className="font-medium">Correct!</span>
+                          <span className="font-medium">Đúng!</span>
                         </div>
                       )}
                       {answerFeedback === 'incorrect' && (
                         <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
                           <span className="material-symbols-outlined">cancel</span>
-                          <span className="font-medium">Incorrect. Try again!</span>
+                          <span className="font-medium">Sai. Thử lại!</span>
                         </div>
                       )}
 
@@ -363,7 +363,7 @@ export default function Study() {
                         disabled={!userAnswer.trim() || answerFeedback === 'correct'}
                         className="flex items-center justify-center rounded-lg h-10 px-5 bg-primary text-white text-base font-bold transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <span>Check Answer</span>
+                        <span>Kiểm Tra</span>
                       </button>
 
                       {/* Show Answer button after wrong attempts */}
@@ -373,7 +373,7 @@ export default function Study() {
                           className="flex items-center justify-center gap-2 rounded-lg h-10 px-5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
                           <span className="material-symbols-outlined">visibility</span>
-                          <span>Show Answer</span>
+                          <span>Xem Đáp Án</span>
                         </button>
                       )}
                     </div>
@@ -390,50 +390,11 @@ export default function Study() {
             </div>
           </div>
 
-          {/* Rating Buttons - Always visible */}
-          <div className="flex justify-center">
-            <div className="flex flex-1 gap-3 flex-wrap px-4 py-3 max-w-lg justify-center">
-              <button
-                onClick={() => handleAnswer(1)}
-                disabled={!showAnswer}
-                className={`flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 transition-colors text-base font-bold leading-normal grow ${
-                  showAnswer
-                    ? 'bg-[#E57373]/10 text-[#E57373] hover:bg-[#E57373]/20'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                <span>Hard</span>
-              </button>
-              <button
-                onClick={() => handleAnswer(3)}
-                disabled={!showAnswer}
-                className={`flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 transition-colors text-base font-bold leading-normal grow ${
-                  showAnswer
-                    ? 'bg-[#81C784]/10 text-[#81C784] hover:bg-[#81C784]/20'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                <span>Good</span>
-              </button>
-              <button
-                onClick={() => handleAnswer(5)}
-                disabled={!showAnswer}
-                className={`flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 transition-colors text-base font-bold leading-normal grow ${
-                  showAnswer
-                    ? 'bg-[#64B5F6]/10 text-[#64B5F6] hover:bg-[#64B5F6]/20'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                <span>Easy</span>
-              </button>
-            </div>
-          </div>
-
           {/* Next Review Info */}
           {nextReview !== null && (
             <div>
               <p className="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal text-center">
-                Next review in: ~{nextReview} {nextReview === 1 ? 'day' : 'days'}
+                Lần ôn tập tiếp theo: ~{nextReview} {nextReview === 1 ? 'ngày' : 'ngày'}
               </p>
             </div>
           )}

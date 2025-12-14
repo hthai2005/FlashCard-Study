@@ -2,13 +2,17 @@ from typing import List
 from datetime import datetime, timedelta, date, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, distinct
 from app.database import get_db
 from app import models, schemas, auth, spaced_repetition
+from app.schemas import (
+    FlashcardWithProgress, StudyAnswer, StudySessionCreate, StudySessionResponse,
+    StudySessionComplete, StudyProgress, StudySessionDataPoint, StudyActivityDataPoint
+)
 
 router = APIRouter()
 
-@router.get("/sets/{set_id}/due", response_model=List[schemas.FlashcardWithProgress])
+@router.get("/sets/{set_id}/due", response_model=List[FlashcardWithProgress])
 def get_cards_due_for_review(
     set_id: int,
     current_user: models.User = Depends(auth.get_current_user),
@@ -48,7 +52,7 @@ def get_cards_due_for_review(
             db.commit()
             db.refresh(study_record)
         
-        card_data = schemas.FlashcardWithProgress(
+        card_data = FlashcardWithProgress(
             id=card.id,
             set_id=card.set_id,
             front=card.front,
@@ -67,7 +71,7 @@ def get_cards_due_for_review(
 
 @router.post("/answer")
 def submit_answer(
-    answer: schemas.StudyAnswer,
+    answer: StudyAnswer,
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -101,9 +105,9 @@ def submit_answer(
         "next_review_date": study_record.next_review_date
     }
 
-@router.post("/sessions", response_model=schemas.StudySessionResponse)
+@router.post("/sessions", response_model=StudySessionResponse)
 def create_study_session(
-    session_data: schemas.StudySessionCreate,
+    session_data: StudySessionCreate,
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -121,10 +125,10 @@ def create_study_session(
     db.refresh(db_session)
     return db_session
 
-@router.put("/sessions/{session_id}", response_model=schemas.StudySessionResponse)
+@router.put("/sessions/{session_id}", response_model=StudySessionResponse)
 def complete_study_session(
     session_id: int,
-    session_data: schemas.StudySessionComplete,
+    session_data: StudySessionComplete,
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -182,7 +186,7 @@ def complete_study_session(
     db.refresh(db_session)
     return db_session
 
-@router.get("/progress/{set_id}", response_model=schemas.StudyProgress)
+@router.get("/progress/{set_id}", response_model=StudyProgress)
 def get_study_progress(
     set_id: int,
     current_user: models.User = Depends(auth.get_current_user),
@@ -205,12 +209,16 @@ def get_study_progress(
         models.StudyRecord.correct_count > 5
     ).count()
     
-    # Count total cards studied by this user (cards with at least one study record)
-    cards_studied_count = db.query(models.StudyRecord).filter(
+    # Count total unique cards studied by this user
+    # A card is considered "studied" if it has a study record with total_reviews > 0
+    # This means the user has reviewed it at least once
+    # Use distinct on flashcard_id to count unique cards, not study records
+    from sqlalchemy import distinct
+    cards_studied_count = db.query(func.count(distinct(models.StudyRecord.flashcard_id))).filter(
         models.StudyRecord.user_id == current_user.id,
         models.StudyRecord.flashcard.has(models.Flashcard.set_id == set_id),
         models.StudyRecord.total_reviews > 0
-    ).count()
+    ).scalar() or 0
     
     # Get daily progress
     today = datetime.utcnow().date()
@@ -229,7 +237,7 @@ def get_study_progress(
     ).first()
     streak_days = leaderboard.streak_days if leaderboard else 0
     
-    return schemas.StudyProgress(
+    return StudyProgress(
         total_cards=total_cards,
         cards_to_review=cards_to_review,
         cards_mastered=mastered,
@@ -266,7 +274,7 @@ def get_last_studied_dates(
     
     return result
 
-@router.get("/sessions/history", response_model=List[schemas.StudySessionDataPoint])
+@router.get("/sessions/history", response_model=List[StudySessionDataPoint])
 def get_study_sessions_history(
     days: int = 30,
     current_user: models.User = Depends(auth.get_current_user),
@@ -303,7 +311,7 @@ def get_study_sessions_history(
         cards_correct = int(session.cards_correct or 0)
         accuracy = (cards_correct / cards_studied * 100) if cards_studied > 0 else 0
         
-        sessions_dict[date_str] = schemas.StudySessionDataPoint(
+        sessions_dict[date_str] = StudySessionDataPoint(
             date=date_str,
             cards_studied=cards_studied,
             cards_correct=cards_correct,
@@ -319,7 +327,7 @@ def get_study_sessions_history(
         if date_str in sessions_dict:
             result.append(sessions_dict[date_str])
         else:
-            result.append(schemas.StudySessionDataPoint(
+            result.append(StudySessionDataPoint(
                 date=date_str,
                 cards_studied=0,
                 cards_correct=0,
@@ -330,7 +338,7 @@ def get_study_sessions_history(
     
     return result
 
-@router.get("/activity", response_model=List[schemas.StudyActivityDataPoint])
+@router.get("/activity", response_model=List[StudyActivityDataPoint])
 def get_study_activity(
     days: int = 365,
     current_user: models.User = Depends(auth.get_current_user),
@@ -375,7 +383,7 @@ def get_study_activity(
         else:
             intensity = 0
         
-        result.append(schemas.StudyActivityDataPoint(
+        result.append(StudyActivityDataPoint(
             date=date_str,
             cards_studied=cards_studied,
             intensity=intensity
