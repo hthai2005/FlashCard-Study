@@ -165,6 +165,8 @@ app = FastAPI(
     )
 
 # CORS middleware
+# Lưu ý: Sau khi deploy frontend lên Vercel, thêm URL Vercel vào đây
+# Ví dụ: "https://flashcard-app.vercel.app"
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -176,7 +178,8 @@ app.add_middleware(
         "http://127.0.0.1:3001",
         "http://127.0.0.1:3002",
         "http://127.0.0.1:5173",
-        "https://your-vercel-app.vercel.app"
+        # Thêm URL Vercel của bạn vào đây sau khi deploy:
+        # "https://your-frontend-app.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
