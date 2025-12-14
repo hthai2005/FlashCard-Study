@@ -32,6 +32,46 @@ export default function Sets() {
     }
   }, [user, authLoading, location.pathname]) // Add location.pathname to refresh when navigating
 
+  // Listen for study progress updates
+  useEffect(() => {
+    const handleStudyProgressUpdate = (event) => {
+      // Refresh mastery data when study progress is updated
+      // Add a small delay to ensure backend has committed the changes
+      setTimeout(() => {
+        if (sets.length > 0) {
+          const fetchMasteryAndLastStudied = async () => {
+            const mastery = {}
+            for (const set of sets) {
+              try {
+                const progressRes = await api.get(`/api/study/progress/${set.id}`).catch(() => null)
+                if (progressRes && progressRes.data) {
+                  const { total_cards, cards_studied } = progressRes.data
+                  if (total_cards > 0 && cards_studied !== undefined && cards_studied !== null) {
+                    mastery[set.id] = Math.round((cards_studied / total_cards) * 100)
+                  } else {
+                    mastery[set.id] = 0
+                  }
+                } else {
+                  mastery[set.id] = 0
+                }
+              } catch (error) {
+                console.error(`Error fetching progress for set ${set.id}:`, error)
+                mastery[set.id] = 0
+              }
+            }
+            setMasteryData(prev => ({ ...prev, ...mastery }))
+          }
+          fetchMasteryAndLastStudied()
+        }
+      }, 500) // Small delay to ensure backend has committed
+    }
+
+    window.addEventListener('studyProgressUpdated', handleStudyProgressUpdate)
+    return () => {
+      window.removeEventListener('studyProgressUpdated', handleStudyProgressUpdate)
+    }
+  }, [sets])
+
   // Refresh mastery and last studied when navigating back to /sets
   useEffect(() => {
     if (user && !authLoading && location.pathname === '/sets' && sets.length > 0) {
@@ -54,7 +94,9 @@ export default function Sets() {
             if (progressRes && progressRes.data) {
               const { total_cards, cards_studied } = progressRes.data
               // Calculate mastery based on cards_studied (cards this user has studied) / total_cards
-              if (total_cards > 0 && cards_studied !== undefined) {
+              // Example: 1 card studied out of 10 = 10%
+              console.log(`Set ${set.id} (${set.title}): total_cards=${total_cards}, cards_studied=${cards_studied}`)
+              if (total_cards > 0 && cards_studied !== undefined && cards_studied !== null) {
                 mastery[set.id] = Math.round((cards_studied / total_cards) * 100)
               } else {
                 mastery[set.id] = 0
@@ -190,6 +232,7 @@ export default function Sets() {
           if (progressRes && progressRes.data) {
             const { total_cards, cards_studied } = progressRes.data
             // Calculate mastery based on cards_studied (cards this user has studied) / total_cards
+            // Example: 1 card studied out of 10 = 10%
             if (total_cards > 0 && cards_studied !== undefined) {
               mastery[set.id] = Math.round((cards_studied / total_cards) * 100)
             } else {
@@ -243,10 +286,29 @@ export default function Sets() {
   const fetchSets = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/api/flashcards/sets')
-      setSets(response.data)
+      // Use /my endpoint to get current user's sets + public sets from others
+      const response = await api.get('/api/flashcards/sets/my')
+      setSets(response.data || [])
+      
+      // Fetch card counts for all sets
+      const counts = {}
+      for (const set of response.data || []) {
+        try {
+          const cardsRes = await api.get(`/api/flashcards/sets/${set.id}/cards`).catch(() => ({ data: [] }))
+          counts[set.id] = cardsRes.data?.length || 0
+        } catch (err) {
+          counts[set.id] = 0
+        }
+      }
+      setCardCounts(counts)
     } catch (error) {
+<<<<<<< HEAD
       toast.error('Không thể tải danh sách bộ thẻ')
+=======
+      console.error('Error fetching sets:', error)
+      toast.error(error.response?.data?.detail || 'Không thể tải bộ thẻ')
+      setSets([])
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
     } finally {
       setLoading(false)
     }
@@ -399,7 +461,11 @@ export default function Sets() {
                       </div>
                       <input
                         className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-full placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 text-base font-normal"
+<<<<<<< HEAD
                         placeholder="Tìm kiếm bộ thẻ của tôi..."
+=======
+                        placeholder="Tìm kiếm bộ thẻ..."
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
@@ -420,7 +486,11 @@ export default function Sets() {
                         ? 'text-primary'
                         : 'text-slate-700 dark:text-slate-300'
                     }`}>
+<<<<<<< HEAD
                       Lần Học Cuối
+=======
+                      Học Gần Nhất
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                     </p>
                     <span className="material-symbols-outlined text-slate-500 dark:text-slate-400">expand_more</span>
                   </button>
@@ -462,24 +532,49 @@ export default function Sets() {
                     // Ensure mastery is always a number (0-100), default to 0 if not set
                     const mastery = typeof masteryData[set.id] === 'number' ? masteryData[set.id] : 0
                     const masteryColor = getMasteryColor(mastery)
+                    // Check if this set belongs to the current user
+                    const isMySet = user && set.owner_id === user.id
                     
                     return (
                       <div
                         key={set.id}
                         className="flex flex-col gap-4 p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-lg hover:border-primary/50 dark:hover:border-primary/50 transition-all group"
                       >
-                        <div className="w-full bg-gradient-to-br from-primary-400 via-purple-500 to-pink-500 aspect-video rounded-lg"></div>
+                        <div className="w-full bg-gradient-to-br from-primary-400 via-purple-500 to-pink-500 aspect-video rounded-lg relative">
+                          {!isMySet && (
+                            <div className="absolute top-2 right-2 bg-green-500/90 text-white text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
+                              <span className="material-symbols-outlined text-xs">public</span>
+                              <span>Công Khai</span>
+                            </div>
+                          )}
+                        </div>
                         <div className="flex-1">
-                          <p className="text-slate-900 dark:text-white text-base font-bold">
-                            {set.title}
-                          </p>
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-slate-900 dark:text-white text-base font-bold flex-1">
+                              {set.title}
+                            </p>
+                            {isMySet && (
+                              <span className="flex-shrink-0 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">
+                                Của Tôi
+                              </span>
+                            )}
+                          </div>
                           <p className="text-slate-500 dark:text-slate-400 text-sm">
                             {cardCount} Thẻ
                           </p>
+                          {!isMySet && set.owner_username && (
+                            <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">
+                              Tạo bởi: <span className="font-medium">{set.owner_username}</span>
+                            </p>
+                          )}
                         </div>
                         <div className="flex flex-col gap-2">
                           <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
+<<<<<<< HEAD
                             <span>Thành Thạo</span>
+=======
+                            <span>Mức Độ Thành Thạo</span>
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                             <span>{mastery}%</span>
                           </div>
                           <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
@@ -503,13 +598,24 @@ export default function Sets() {
                           >
                             <span className="material-symbols-outlined">style</span>
                             <span>Học</span>
+<<<<<<< HEAD
                           </button>
                           <button
                             onClick={() => handleDeleteSet(set.id)}
                             className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                           >
                             <span className="material-symbols-outlined">more_vert</span>
+=======
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                           </button>
+                          {isMySet && (
+                            <button
+                              onClick={() => handleDeleteSet(set.id)}
+                              className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                            >
+                              <span className="material-symbols-outlined">more_vert</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     )

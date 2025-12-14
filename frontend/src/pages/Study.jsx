@@ -143,7 +143,7 @@ export default function Study() {
         quality: quality
       })
 
-      // Get next review info
+      // Refresh progress to get updated data
       const progressRes = await api.get(`/api/study/progress/${setId}`).catch(() => null)
       if (progressRes && currentCard.next_review_date) {
         const days = Math.ceil((new Date(currentCard.next_review_date) - new Date()) / (1000 * 60 * 60 * 24))
@@ -158,6 +158,11 @@ export default function Study() {
         newStats.incorrect += 1
       }
       setStats(newStats)
+      
+      // Trigger a custom event to notify other pages to refresh
+      window.dispatchEvent(new CustomEvent('studyProgressUpdated', { 
+        detail: { set_id: parseInt(setId) } 
+      }))
 
       // Move to next card after a short delay
       setTimeout(() => {
@@ -206,6 +211,13 @@ export default function Study() {
       }
       
       toast.success(`Hoàn thành phiên học! Bạn đã học ${finalStats.studied}/${cards.length} thẻ.`)
+<<<<<<< HEAD
+=======
+      // Trigger event to refresh other pages
+      window.dispatchEvent(new CustomEvent('studyProgressUpdated', { 
+        detail: { set_id: parseInt(setId) } 
+      }))
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
       setTimeout(() => {
         navigate('/dashboard')
       }, 2000)
@@ -250,7 +262,11 @@ export default function Study() {
               onClick={() => navigate('/sets')}
               className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg"
             >
+<<<<<<< HEAD
               Quay Lại Danh Sách
+=======
+              Về Bộ Thẻ
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
             </button>
           </div>
         </main>
@@ -384,6 +400,19 @@ export default function Study() {
                     <p className="text-gray-800 dark:text-white text-xl font-semibold tracking-tight">
                       {currentCard?.back || 'Loading...'}
                     </p>
+                    
+                    {/* Continue button after showing answer (especially after 2 wrong attempts) */}
+                    {wrongAttempts >= 2 && (
+                      <div className="mt-6 w-full max-w-md">
+                        <button
+                          onClick={() => handleAnswer(1)}
+                          className="flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-primary text-white text-base font-bold transition-colors hover:bg-primary/90 w-full"
+                        >
+                          <span className="material-symbols-outlined">arrow_forward</span>
+                          <span>Tiếp Tục Phiên</span>
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -394,7 +423,11 @@ export default function Study() {
           {nextReview !== null && (
             <div>
               <p className="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal text-center">
+<<<<<<< HEAD
                 Lần ôn tập tiếp theo: ~{nextReview} {nextReview === 1 ? 'ngày' : 'ngày'}
+=======
+                Ôn tập lại sau: ~{nextReview} {nextReview === 1 ? 'ngày' : 'ngày'}
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
               </p>
             </div>
           )}

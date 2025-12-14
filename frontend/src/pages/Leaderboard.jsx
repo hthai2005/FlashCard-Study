@@ -69,7 +69,11 @@ export default function Leaderboard() {
                 </div>
                 <div>
                   <div className="text-sm opacity-90">Thời Gian Học</div>
+<<<<<<< HEAD
                   <div className="text-2xl font-bold">{myRank.total_study_time}m</div>
+=======
+                  <div className="text-2xl font-bold">{myRank.total_study_time} phút</div>
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                 </div>
                 <div>
                   <div className="text-sm opacity-90">Thẻ Đã Học</div>
@@ -92,7 +96,11 @@ export default function Leaderboard() {
                     Hạng
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+<<<<<<< HEAD
                     Tên Đăng Nhập
+=======
+                    Tên Người Dùng
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Điểm

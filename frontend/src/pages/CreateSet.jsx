@@ -44,13 +44,21 @@ export default function CreateSet() {
     e.preventDefault()
     
     if (!setData.title.trim()) {
+<<<<<<< HEAD
       toast.error('Vui lòng nhập tiêu đề bộ thẻ')
+=======
+      toast.error('Vui lòng nhập tên bộ thẻ')
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
       return
     }
 
     const validCards = cards.filter(card => card.front.trim() && card.back.trim())
     if (validCards.length === 0) {
+<<<<<<< HEAD
       toast.error('Vui lòng thêm ít nhất một thẻ có cả thuật ngữ và định nghĩa')
+=======
+      toast.error('Vui lòng thêm ít nhất một thẻ có cả mặt trước và mặt sau')
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
       return
     }
 
@@ -68,8 +76,15 @@ export default function CreateSet() {
       }
 
       toast.success(`Đã tạo bộ thẻ với ${validCards.length} thẻ!`)
+<<<<<<< HEAD
       navigate('/sets')
     } catch (error) {
+=======
+      // Navigate to sets page - it will auto-refresh due to location.pathname dependency
+      navigate('/sets')
+    } catch (error) {
+      console.error('Error creating set:', error)
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
       toast.error(error.response?.data?.detail || 'Không thể tạo bộ thẻ')
     }
   }
@@ -87,7 +102,11 @@ export default function CreateSet() {
                 Tạo Bộ Thẻ Mới
               </h1>
               <p className="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal">
+<<<<<<< HEAD
                 Điền thông tin bên dưới để bắt đầu bộ học mới.
+=======
+                Điền thông tin bên dưới để bắt đầu bộ học mới của bạn.
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -117,11 +136,15 @@ export default function CreateSet() {
                 <div className="space-y-6">
                   <label className="flex flex-col w-full">
                     <p className="text-slate-800 dark:text-slate-200 text-base font-medium leading-normal pb-2">
+<<<<<<< HEAD
                       Tiêu Đề Bộ Thẻ
+=======
+                      Tên Bộ Thẻ
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                     </p>
                     <input
                       className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-black dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/50 h-12 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-[15px] text-base font-normal leading-normal"
-                      placeholder="e.g., Biology Chapter 5: Cell Division"
+                      placeholder="Ví dụ: Sinh Học Chương 5: Phân Bào"
                       value={setData.title}
                       onChange={(e) => handleSetDataChange('title', e.target.value)}
                     />
@@ -133,7 +156,7 @@ export default function CreateSet() {
                     </p>
                     <textarea
                       className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-black dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/50 min-h-36 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-[15px] text-base font-normal leading-normal"
-                      placeholder="Add a brief description to help you remember what this set is about."
+                      placeholder="Thêm mô tả ngắn để giúp bạn nhớ bộ thẻ này về cái gì."
                       value={setData.description}
                       onChange={(e) => handleSetDataChange('description', e.target.value)}
                     />
@@ -196,22 +219,38 @@ export default function CreateSet() {
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                       <label className="flex flex-col w-full">
                         <p className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
+<<<<<<< HEAD
                           Thuật Ngữ
                         </p>
                         <textarea
                           className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-black dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 min-h-24 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-base font-normal"
                           placeholder="Nhập Thuật Ngữ"
+=======
+                          Mặt Trước
+                        </p>
+                        <textarea
+                          className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-black dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 min-h-24 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-base font-normal"
+                          placeholder="Nhập nội dung mặt trước"
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                           value={card.front}
                           onChange={(e) => handleCardChange(index, 'front', e.target.value)}
                         />
                       </label>
                       <label className="flex flex-col w-full">
                         <p className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
+<<<<<<< HEAD
                           Định Nghĩa
                         </p>
                         <textarea
                           className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-black dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 min-h-24 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-base font-normal"
                           placeholder="Nhập Định Nghĩa"
+=======
+                          Mặt Sau
+                        </p>
+                        <textarea
+                          className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-black dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 min-h-24 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-base font-normal"
+                          placeholder="Nhập nội dung mặt sau"
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                           value={card.back}
                           onChange={(e) => handleCardChange(index, 'back', e.target.value)}
                         />
@@ -221,6 +260,7 @@ export default function CreateSet() {
                       <button
                         onClick={() => removeCard(index)}
                         className="text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-500 transition-colors"
+                        title="Xóa thẻ"
                       >
                         <span className="material-symbols-outlined">delete</span>
                       </button>

@@ -4,11 +4,15 @@ from fastapi.staticfiles import StaticFiles
 from app.database import engine, Base
 from app.routers import auth, flashcards, study, leaderboard, ai, admin
 from pathlib import Path
+<<<<<<< HEAD
 from sqlalchemy import text, inspect
+=======
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+<<<<<<< HEAD
 # Migration: Add avatar_url column if not exists
 def migrate_add_avatar_url():
     """Thêm cột avatar_url vào bảng users nếu chưa có"""
@@ -51,6 +55,8 @@ def migrate_add_avatar_url():
 # Chạy migration
 migrate_add_avatar_url()
 
+=======
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
 # Create uploads directory if it doesn't exist
 uploads_dir = Path("uploads/avatars")
 uploads_dir.mkdir(parents=True, exist_ok=True)

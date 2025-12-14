@@ -69,7 +69,7 @@ export default function SetManagement() {
         reportedSets: reportedCount
       })
     } catch (error) {
-      toast.error('Failed to load flashcard sets')
+      toast.error('Không thể tải danh sách bộ thẻ')
     } finally {
       setLoading(false)
     }
@@ -92,7 +92,11 @@ export default function SetManagement() {
   }
 
   const handleDelete = async (setId) => {
+<<<<<<< HEAD
       if (window.confirm('Bạn có chắc muốn xóa bộ thẻ này?')) {
+=======
+    if (window.confirm('Bạn có chắc muốn xóa bộ thẻ này?')) {
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
       try {
         await api.delete(`/api/flashcards/sets/${setId}`)
         toast.success('Đã xóa bộ thẻ thành công')
@@ -106,10 +110,17 @@ export default function SetManagement() {
   const handleApprove = async (setId) => {
     try {
       await api.put(`/api/flashcards/sets/${setId}`, { is_public: true })
+<<<<<<< HEAD
       toast.success('Đã duyệt bộ thẻ')
       fetchSets()
     } catch (error) {
       toast.error('Không thể duyệt bộ thẻ')
+=======
+      toast.success('Đã phê duyệt bộ thẻ')
+      fetchSets()
+    } catch (error) {
+      toast.error('Không thể phê duyệt bộ thẻ')
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
     }
   }
 
@@ -173,19 +184,31 @@ export default function SetManagement() {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-white/10 bg-white/5">
+<<<<<<< HEAD
               <p className="text-slate-400 text-base font-medium leading-normal">Chờ Duyệt</p>
+=======
+              <p className="text-slate-400 text-base font-medium leading-normal">Chờ Xem Xét</p>
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
               <p className="text-black dark:text-white tracking-light text-3xl font-bold leading-tight">
                 {stats.pendingReview}
               </p>
             </div>
             <div className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-white/10 bg-white/5">
+<<<<<<< HEAD
               <p className="text-slate-400 text-base font-medium leading-normal">Tổng Số Bộ</p>
+=======
+              <p className="text-slate-400 text-base font-medium leading-normal">Tổng Bộ Thẻ</p>
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
               <p className="text-black dark:text-white tracking-light text-3xl font-bold leading-tight">
                 {stats.totalSets.toLocaleString()}
               </p>
             </div>
             <div className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-xl p-6 border border-white/10 bg-white/5">
+<<<<<<< HEAD
               <p className="text-slate-400 text-base font-medium leading-normal">Bộ Bị Báo Cáo</p>
+=======
+              <p className="text-slate-400 text-base font-medium leading-normal">Bộ Thẻ Bị Báo Cáo</p>
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
               <p className="text-black dark:text-white tracking-light text-3xl font-bold leading-tight">
                 {stats.reportedSets}
               </p>
@@ -222,7 +245,11 @@ export default function SetManagement() {
                 <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
                   add
                 </span>
+<<<<<<< HEAD
                 <span className="truncate">Thêm Bộ Mới</span>
+=======
+                <span className="truncate">Thêm Bộ Thẻ Mới</span>
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
               </button>
             </div>
 
@@ -241,7 +268,11 @@ export default function SetManagement() {
                         />
                       </th>
                       <th className="px-4 py-3 text-slate-400 w-2/6 text-sm font-medium leading-normal">
+<<<<<<< HEAD
                         Tiêu Đề Bộ Thẻ
+=======
+                        Tên Bộ Thẻ
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                       </th>
                       <th className="px-4 py-3 text-slate-400 w-1/6 text-sm font-medium leading-normal hidden md:table-cell">
                         Người Tạo
@@ -256,7 +287,11 @@ export default function SetManagement() {
                         Trạng Thái
                       </th>
                       <th className="px-4 py-3 text-slate-400 w-[120px] text-sm font-medium leading-normal">
+<<<<<<< HEAD
                         Hành Động
+=======
+                        Thao Tác
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                       </th>
                     </tr>
                   </thead>
@@ -309,7 +344,7 @@ export default function SetManagement() {
                                     : 'bg-red-400'
                                 }`}
                               ></span>
-                              {set.status}
+                              {set.status === 'Approved' ? 'Đã Phê Duyệt' : set.status === 'Pending' ? 'Chờ Xem Xét' : 'Từ Chối'}
                             </div>
                           </td>
                           <td className="h-[72px] px-4 py-2 w-[120px]">
@@ -332,7 +367,11 @@ export default function SetManagement() {
                                     onClick={() => handleApprove(set.id)}
                                     className="text-green-400 text-sm font-medium hover:underline"
                                   >
+<<<<<<< HEAD
                                     Duyệt
+=======
+                                    Phê Duyệt
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                                   </button>
                                   <button
                                     onClick={() => handleReject(set.id)}

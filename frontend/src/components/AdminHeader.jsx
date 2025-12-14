@@ -39,7 +39,7 @@ export default function AdminHeader({ pageTitle = 'Dashboard' }) {
           <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary">
             <span className="material-symbols-outlined text-white text-xl">school</span>
           </div>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white">Flashcard App</h1>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white">Thẻ Ghi Nhớ</h1>
         </div>
 
         {/* Center - Page Title */}
@@ -56,7 +56,7 @@ export default function AdminHeader({ pageTitle = 'Dashboard' }) {
                 <span className="material-symbols-outlined absolute left-3 text-gray-400 dark:text-gray-500 text-sm pointer-events-none">search</span>
                 <input
                   className="w-full border-0 bg-transparent h-full pl-10 pr-4 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-0"
-                  placeholder="Search for users, sets..."
+                  placeholder="Tìm kiếm người dùng, bộ thẻ..."
                   type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -79,11 +79,11 @@ export default function AdminHeader({ pageTitle = 'Dashboard' }) {
             {showNotifications && (
               <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">Notifications</h3>
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">Thông Báo</h3>
                 </div>
                 <div className="p-4">
                   <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                    No new notifications
+                    Không có thông báo mới
                   </p>
                 </div>
               </div>
@@ -96,7 +96,7 @@ export default function AdminHeader({ pageTitle = 'Dashboard' }) {
               <div className="flex flex-col items-end">
                 <span className="text-sm font-bold text-gray-900 dark:text-white">{user.username || 'admin'}</span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {user.is_admin ? 'Administrator' : 'User'}
+                  {user.is_admin ? 'Quản Trị Viên' : 'Người Dùng'}
                 </span>
               </div>
               <button

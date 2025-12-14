@@ -22,7 +22,11 @@ export default function Sidebar() {
               📚
             </div>
             <div className="flex flex-col">
+<<<<<<< HEAD
               <h1 className="text-white text-base font-medium leading-normal">Flashcard App</h1>
+=======
+              <h1 className="text-white text-base font-medium leading-normal">Thẻ Ghi Nhớ</h1>
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
               <p className="text-[#9da6b9] text-sm font-normal leading-normal">Học thông minh hơn</p>
             </div>
           </Link>
@@ -48,7 +52,11 @@ export default function Sidebar() {
               }`}
             >
               <span className="material-symbols-outlined">layers</span>
+<<<<<<< HEAD
               <p className="text-sm font-medium leading-normal">Tất Cả Bộ Thẻ</p>
+=======
+              <p className="text-sm font-medium leading-normal">Bộ Thẻ Của Tôi</p>
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
             </Link>
             <Link
               to="/leaderboard"
@@ -70,7 +78,11 @@ export default function Sidebar() {
               }`}
             >
               <span className="material-symbols-outlined">add_circle</span>
+<<<<<<< HEAD
               <p className="text-sm font-medium leading-normal">Tạo Mới</p>
+=======
+              <p className="text-sm font-medium leading-normal">Tạo Bộ Thẻ Mới</p>
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
             </Link>
             {user?.is_admin && (
               <Link

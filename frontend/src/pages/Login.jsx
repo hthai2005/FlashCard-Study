@@ -39,7 +39,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
-          📚 Flashcard Study App
+          📚 Ứng Dụng Học Thẻ Ghi Nhớ
         </h1>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

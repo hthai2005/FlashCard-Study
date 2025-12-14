@@ -102,7 +102,11 @@ export default function ContentModeration() {
         setSelectedReport(filteredReports[0])
       }
     } catch (error) {
+<<<<<<< HEAD
       toast.error('Không thể tải báo cáo')
+=======
+      toast.error('Không thể tải danh sách báo cáo')
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
     } finally {
       setLoading(false)
     }
@@ -118,12 +122,20 @@ export default function ContentModeration() {
     
     try {
       // In production, this would call an API
+<<<<<<< HEAD
       toast.success('Đã duyệt báo cáo. Nội dung đã được giữ lại.')
+=======
+      toast.success('Đã phê duyệt báo cáo. Nội dung đã được giữ lại.')
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
       setReports(prev => prev.filter(r => r.id !== selectedReport.id))
       setSelectedReport(null)
       fetchReports()
     } catch (error) {
+<<<<<<< HEAD
       toast.error('Không thể duyệt báo cáo')
+=======
+      toast.error('Không thể phê duyệt báo cáo')
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
     }
   }
 
@@ -133,7 +145,11 @@ export default function ContentModeration() {
     if (window.confirm('Bạn có chắc muốn từ chối và xóa nội dung này?')) {
       try {
         // In production, this would call an API to delete the set
+<<<<<<< HEAD
         toast.success('Đã xóa nội dung.')
+=======
+        toast.success('Nội dung đã được xóa.')
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
         setReports(prev => prev.filter(r => r.id !== selectedReport.id))
         setSelectedReport(null)
         fetchReports()
@@ -248,7 +264,11 @@ export default function ContentModeration() {
                   }`}
                 >
                   <p className={`text-sm ${activeTab === 'pending' ? 'font-bold text-primary' : 'font-medium'}`}>
+<<<<<<< HEAD
                     Chờ Duyệt
+=======
+                    Chờ Xem Xét
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                   </p>
                 </a>
                 <a
@@ -469,7 +489,11 @@ export default function ContentModeration() {
                         className="flex h-10 min-w-[120px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-emerald-500 px-4 text-sm font-bold text-white transition-colors hover:bg-emerald-600"
                       >
                         <span className="material-symbols-outlined">check_circle</span>
+<<<<<<< HEAD
                         <span>Duyệt</span>
+=======
+                        <span>Phê Duyệt</span>
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                       </button>
                       <button
                         onClick={handleReject}
@@ -523,7 +547,11 @@ export default function ContentModeration() {
               {editingCards.map((card) => (
                 <div key={card.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
+<<<<<<< HEAD
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Thẻ {card.id}</span>
+=======
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Thẻ {card.id}</span>
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"

@@ -32,6 +32,21 @@ export default function Dashboard() {
     }
   }, [user, authLoading, timeFilter])
 
+  // Listen for study progress updates
+  useEffect(() => {
+    const handleStudyProgressUpdate = () => {
+      // Refresh dashboard data when study progress is updated
+      if (user && !authLoading) {
+        fetchData()
+      }
+    }
+
+    window.addEventListener('studyProgressUpdated', handleStudyProgressUpdate)
+    return () => {
+      window.removeEventListener('studyProgressUpdated', handleStudyProgressUpdate)
+    }
+  }, [user, authLoading])
+
   const fetchData = async () => {
     try {
       const [setsRes, historyRes, activityRes] = await Promise.all([
@@ -123,24 +138,24 @@ export default function Dashboard() {
         }
       }
     } catch (error) {
-      toast.error('Failed to load dashboard data')
+      toast.error('Không thể tải dữ liệu trang chủ')
     } finally {
       setLoading(false)
     }
   }
 
   const formatLastStudied = (dateString) => {
-    if (!dateString) return 'Never'
+    if (!dateString) return 'Chưa học'
     const date = new Date(dateString)
     const now = new Date()
     const diffTime = Math.abs(now - date)
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     
-    if (diffDays === 0) return 'Today'
-    if (diffDays === 1) return 'Yesterday'
-    if (diffDays < 7) return `${diffDays} days ago`
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`
-    return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`
+    if (diffDays === 0) return 'Hôm nay'
+    if (diffDays === 1) return 'Hôm qua'
+    if (diffDays < 7) return `${diffDays} ngày trước`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`
+    return `${Math.floor(diffDays / 30)} tháng trước`
   }
 
   if (authLoading) {
@@ -229,7 +244,11 @@ export default function Dashboard() {
                 </div>
                 <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
                   {stats.dailyGoal - stats.dailyProgress > 0
+<<<<<<< HEAD
                     ? `${stats.dailyGoal - stats.dailyProgress} thẻ còn lại`
+=======
+                    ? `Còn ${stats.dailyGoal - stats.dailyProgress} thẻ`
+>>>>>>> 0b2d28d8543ea39bd4791f8a41b5e9c34f5e3808
                     : 'Đã đạt mục tiêu! 🎉'}
                 </p>
               </div>
@@ -382,35 +401,35 @@ export default function Dashboard() {
                             'bg-green-800 dark:bg-green-500'
                           ]
                           
-                          return studyActivity.slice(-365).map((activity, index) => {
-                            const date = new Date(activity.date)
-                            const dayOfWeek = date.getDay()
-                            const intensity = activity.intensity
+                          const items = []
+                          const activities = studyActivity.slice(-365)
                           
                           // Align first day of year to correct day of week
-                          if (index === 0 && dayOfWeek !== 0) {
-                            return (
-                              <>
-                                {Array.from({ length: dayOfWeek }).map((_, i) => (
+                          if (activities.length > 0) {
+                            const firstDate = new Date(activities[0].date)
+                            const dayOfWeek = firstDate.getDay()
+                            
+                            if (dayOfWeek !== 0) {
+                              for (let i = 0; i < dayOfWeek; i++) {
+                                items.push(
                                   <div key={`empty-${i}`} className="aspect-square"></div>
-                                ))}
-                                <div
-                                  key={activity.date}
-                                  className={`aspect-square rounded ${bgColors[intensity]} cursor-pointer hover:ring-2 hover:ring-primary transition-all`}
-                                  title={`${activity.date}: ${activity.cards_studied} cards`}
-                                ></div>
-                              </>
-                            )
+                                )
+                              }
+                            }
                           }
                           
-                          return (
-                            <div
-                              key={activity.date}
-                              className={`aspect-square rounded ${bgColors[intensity]} cursor-pointer hover:ring-2 hover:ring-primary transition-all`}
-                              title={`${activity.date}: ${activity.cards_studied} cards`}
-                            ></div>
-                          )
+                          activities.forEach((activity, index) => {
+                            const intensity = activity.intensity
+                            items.push(
+                              <div
+                                key={activity.date || `activity-${index}`}
+                                className={`aspect-square rounded ${bgColors[intensity]} cursor-pointer hover:ring-2 hover:ring-primary transition-all`}
+                                title={`${activity.date}: ${activity.cards_studied} cards`}
+                              ></div>
+                            )
                           })
+                          
+                          return items
                         })()}
                       </div>
                       <div className="flex items-center justify-end gap-4 mt-4 text-xs text-gray-500 dark:text-gray-400">
