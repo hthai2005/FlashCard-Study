@@ -178,8 +178,8 @@ app.add_middleware(
         "http://127.0.0.1:3001",
         "http://127.0.0.1:3002",
         "http://127.0.0.1:5173",
-        # Thêm URL Vercel của bạn vào đây sau khi deploy:
-        # "https://your-frontend-app.vercel.app"
+        # URL Vercel frontend
+        "https://flash-card-study-eta.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
