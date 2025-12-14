@@ -15,7 +15,7 @@ def migrate_add_avatar_url():
     try:
         # Kiểm tra xem có phải PostgreSQL không
         if not str(engine.url).startswith("sqlite"):
-            with engine.connect() as conn:
+            with engine.begin() as conn:
                 # Kiểm tra cột đã tồn tại chưa
                 check_query = text("""
                     SELECT column_name 
@@ -28,7 +28,6 @@ def migrate_add_avatar_url():
                     # Thêm cột
                     alter_query = text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255);")
                     conn.execute(alter_query)
-                    conn.commit()
                     print("✅ Đã thêm cột avatar_url vào bảng users")
                 else:
                     print("ℹ️  Cột avatar_url đã tồn tại trong database")
@@ -37,10 +36,9 @@ def migrate_add_avatar_url():
             inspector = inspect(engine)
             columns = [col['name'] for col in inspector.get_columns('users')]
             if 'avatar_url' not in columns:
-                with engine.connect() as conn:
+                with engine.begin() as conn:
                     alter_query = text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255);")
                     conn.execute(alter_query)
-                    conn.commit()
                     print("✅ Đã thêm cột avatar_url vào bảng users (SQLite)")
             else:
                 print("ℹ️  Cột avatar_url đã tồn tại trong database (SQLite)")
@@ -53,7 +51,7 @@ def migrate_add_status():
     """Thêm cột status vào bảng flashcard_sets nếu chưa có"""
     try:
         if not str(engine.url).startswith("sqlite"):
-            with engine.connect() as conn:
+            with engine.begin() as conn:
                 check_query = text("""
                     SELECT column_name 
                     FROM information_schema.columns 
@@ -67,7 +65,6 @@ def migrate_add_status():
                     # Update existing records to 'approved'
                     update_query = text("UPDATE flashcard_sets SET status = 'approved' WHERE status IS NULL;")
                     conn.execute(update_query)
-                    conn.commit()
                     print("✅ Đã thêm cột status vào bảng flashcard_sets")
                 else:
                     print("ℹ️  Cột status đã tồn tại trong database")
@@ -75,12 +72,11 @@ def migrate_add_status():
             inspector = inspect(engine)
             columns = [col['name'] for col in inspector.get_columns('flashcard_sets')]
             if 'status' not in columns:
-                with engine.connect() as conn:
+                with engine.begin() as conn:
                     alter_query = text("ALTER TABLE flashcard_sets ADD COLUMN status VARCHAR(20) DEFAULT 'pending';")
                     conn.execute(alter_query)
                     update_query = text("UPDATE flashcard_sets SET status = 'approved' WHERE status IS NULL;")
                     conn.execute(update_query)
-                    conn.commit()
                     print("✅ Đã thêm cột status vào bảng flashcard_sets (SQLite)")
             else:
                 print("ℹ️  Cột status đã tồn tại trong database (SQLite)")
@@ -92,7 +88,7 @@ def migrate_create_reports_table():
     """Tạo bảng reports nếu chưa có"""
     try:
         if not str(engine.url).startswith("sqlite"):
-            with engine.connect() as conn:
+            with engine.begin() as conn:
                 check_query = text("""
                     SELECT table_name 
                     FROM information_schema.tables 
@@ -117,7 +113,6 @@ def migrate_create_reports_table():
                         );
                     """)
                     conn.execute(create_query)
-                    conn.commit()
                     print("✅ Đã tạo bảng reports")
                 else:
                     print("ℹ️  Bảng reports đã tồn tại")
@@ -125,7 +120,7 @@ def migrate_create_reports_table():
             inspector = inspect(engine)
             tables = inspector.get_table_names()
             if 'reports' not in tables:
-                with engine.connect() as conn:
+                with engine.begin() as conn:
                     create_query = text("""
                         CREATE TABLE reports (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -142,7 +137,6 @@ def migrate_create_reports_table():
                         );
                     """)
                     conn.execute(create_query)
-                    conn.commit()
                     print("✅ Đã tạo bảng reports (SQLite)")
             else:
                 print("ℹ️  Bảng reports đã tồn tại (SQLite)")
