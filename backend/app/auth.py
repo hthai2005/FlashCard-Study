@@ -13,7 +13,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against a bcrypt hash"""
@@ -85,11 +85,24 @@ async def get_current_user(
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
+            print(f"❌ Token validation failed: username not found in payload")
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        print(f"❌ JWT Error: {str(e)}")
         raise credentials_exception
+    except Exception as e:
+        print(f"❌ Unexpected error decoding token: {str(e)}")
+        raise credentials_exception
+    
     user = get_user_by_username(db, username=username)
     if user is None:
+        print(f"❌ User not found: {username}")
         raise credentials_exception
+    if not user.is_active:
+        print(f"❌ User account is inactive: {username}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive",
+        )
     return user
 

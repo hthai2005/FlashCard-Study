@@ -126,12 +126,6 @@ class StudySessionResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class StudySessionComplete(BaseModel):
-    cards_studied: int
-    cards_correct: int
-    cards_incorrect: int
-    duration_minutes: int
-
 class StudyProgress(BaseModel):
     total_cards: int
     cards_to_review: int

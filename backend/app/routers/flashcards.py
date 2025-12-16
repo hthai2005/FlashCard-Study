@@ -117,6 +117,7 @@ def get_flashcard_set(
 ):
     db_set = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner)).filter(models.FlashcardSet.id == set_id).first()
     if not db_set:
+        print(f"❌ Flashcard set {set_id} not found in database")
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     
     # Admin can access any set
@@ -127,6 +128,7 @@ def get_flashcard_set(
         if db_set.owner_id != current_user.id:
             # Not owner - can only access if public AND approved
             if not db_set.is_public or db_set.status != 'approved':
+                print(f"❌ Access denied: Set {set_id} - is_public={db_set.is_public}, status={db_set.status}, owner_id={db_set.owner_id}, current_user_id={current_user.id}")
                 raise HTTPException(status_code=403, detail="Not authorized")
         # If owner, allow access regardless of status (so they can see their pending decks)
     
@@ -213,12 +215,19 @@ def get_flashcards(
 ):
     db_set = db.query(models.FlashcardSet).filter(models.FlashcardSet.id == set_id).first()
     if not db_set:
+        print(f"❌ Flashcard set {set_id} not found when fetching cards")
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     
-    # Admin can access any set, regular users can only access their own or public sets
+    # Admin can access any set
+    # Regular users can access:
+    # - Their own sets (regardless of status)
+    # - Public sets that are approved
     if not current_user.is_admin:
-        if db_set.owner_id != current_user.id and not db_set.is_public:
-            raise HTTPException(status_code=403, detail="Not authorized")
+        if db_set.owner_id != current_user.id:
+            # Not owner - can only access if public AND approved
+            if not db_set.is_public or db_set.status != 'approved':
+                print(f"❌ Access denied to cards: Set {set_id} - is_public={db_set.is_public}, status={db_set.status}, owner_id={db_set.owner_id}, current_user_id={current_user.id}")
+                raise HTTPException(status_code=403, detail="Not authorized")
     
     return db_set.flashcards
 

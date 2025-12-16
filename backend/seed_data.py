@@ -68,7 +68,8 @@ def create_sample_users():
             title="Từ vựng tiếng Anh cơ bản",
             description="Bộ flashcard học từ vựng tiếng Anh cơ bản",
             owner_id=test_user.id,
-            is_public=True
+            is_public=True,
+            status='approved'  # Auto-approve seed data
         )
         db.add(set1)
         db.flush()
@@ -102,7 +103,8 @@ def create_sample_users():
             title="Toán học cơ bản",
             description="Các công thức và khái niệm toán học cơ bản",
             owner_id=test_user.id,
-            is_public=True
+            is_public=True,
+            status='approved'  # Auto-approve seed data
         )
         db.add(set2)
         db.flush()
@@ -131,7 +133,8 @@ def create_sample_users():
             title="Lịch sử Việt Nam",
             description="Các sự kiện lịch sử quan trọng của Việt Nam",
             owner_id=test_user.id,
-            is_public=False
+            is_public=False,
+            status='approved'  # Auto-approve seed data
         )
         db.add(set3)
         db.flush()
