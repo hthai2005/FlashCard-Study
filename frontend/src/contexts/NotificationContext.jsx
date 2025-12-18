@@ -47,7 +47,7 @@ export function NotificationProvider({ children }) {
               read: false,
               action: notif.type === 'pending_set' 
                 ? { type: 'navigate', path: `/admin/sets?pending=true` }
-                : { type: 'navigate', path: `/admin/reports?pending=true` },
+                : { type: 'navigate', path: `/admin/moderation?tab=pending` },
               item_id: notif.item_id,
               notification_type: notif.type
             })
@@ -55,17 +55,29 @@ export function NotificationProvider({ children }) {
         }
         
         // All users: Get user-specific notifications (set pending, approved, etc.)
+        // But for admin, filter out report_resolved and report_rejected (these are for reporters only)
         try {
           const userResponse = await api.get('/api/notifications/user')
           const userData = userResponse.data
 
           // Convert user notifications to frontend format
           userData.notifications.forEach((notif) => {
+            // For admin, skip report_resolved and report_rejected notifications
+            // These are only for users who reported content, not for admins
+            if (user.is_admin && (notif.type === 'report_resolved' || notif.type === 'report_rejected')) {
+              return
+            }
+            
+            // Determine notification type and icon
+            let notifType = 'info'
+            if (notif.type === 'set_approved') notifType = 'success'
+            else if (notif.type === 'set_pending') notifType = 'warning'
+            else if (notif.type === 'set_rejected' || notif.type === 'item_deleted') notifType = 'error'
+            else if (notif.type === 'report_resolved' || notif.type === 'report_rejected') notifType = 'info'
+            
             allNotifications.push({
               id: `user_${notif.id}`,
-              type: notif.type === 'set_approved' ? 'success' : 
-                    notif.type === 'set_pending' ? 'warning' : 
-                    notif.type === 'set_rejected' ? 'error' : 'info',
+              type: notifType,
               title: notif.title,
               message: notif.message,
               timestamp: notif.created_at,

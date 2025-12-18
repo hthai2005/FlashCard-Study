@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationContext'
 import api from '../services/api'
@@ -7,16 +8,27 @@ import AdminSidebar from '../components/AdminSidebar'
 import AdminHeader from '../components/AdminHeader'
 
 export default function ContentModeration() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const { user, loading: authLoading } = useAuth()
   const { addNotificationForUser } = useNotifications()
   const [loading, setLoading] = useState(true)
   const [reports, setReports] = useState([])
   const [selectedReport, setSelectedReport] = useState(null)
-  const [activeTab, setActiveTab] = useState('pending')
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'pending')
   const [searchQuery, setSearchQuery] = useState('')
   const [moderatorNotes, setModeratorNotes] = useState('')
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingCards, setEditingCards] = useState([])
+
+  // Update activeTab when URL param changes
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam && ['pending', 'resolved', 'all'].includes(tabParam)) {
+      setActiveTab(tabParam)
+    } else if (!tabParam) {
+      setActiveTab('pending')
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (user && !authLoading && user.is_admin) {
@@ -31,7 +43,7 @@ export default function ContentModeration() {
       const statusFilter = activeTab === 'pending' ? 'pending' : activeTab === 'resolved' ? 'resolved' : null
       const response = await api.get('/api/reports/admin', {
         params: {
-          status: statusFilter,
+          status_filter: statusFilter,  // Backend uses status_filter, not status
           limit: 100
         }
       })
@@ -318,6 +330,17 @@ export default function ContentModeration() {
     return null
   }
 
+  if (!user.is_admin) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background-light dark:bg-background-dark">
+        <div className="text-center">
+          <p className="text-xl font-bold text-red-500 mb-2">Không có quyền truy cập</p>
+          <p className="text-gray-600 dark:text-gray-400">Chỉ admin mới có thể truy cập trang này.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background-light dark:bg-background-dark">
       <AdminHeader pageTitle="Kiểm Duyệt Nội Dung" />
@@ -345,6 +368,7 @@ export default function ContentModeration() {
                   onClick={(e) => {
                     e.preventDefault()
                     setActiveTab('pending')
+                    setSearchParams({ tab: 'pending' })
                     setSelectedReport(null)
                   }}
                   className={`flex flex-col items-center justify-center border-b-[3px] pb-3 pt-4 cursor-pointer ${
@@ -361,6 +385,7 @@ export default function ContentModeration() {
                   onClick={(e) => {
                     e.preventDefault()
                     setActiveTab('resolved')
+                    setSearchParams({ tab: 'resolved' })
                     setSelectedReport(null)
                   }}
                   className={`flex flex-col items-center justify-center border-b-[3px] pb-3 pt-4 cursor-pointer ${
@@ -377,6 +402,7 @@ export default function ContentModeration() {
                   onClick={(e) => {
                     e.preventDefault()
                     setActiveTab('all')
+                    setSearchParams({ tab: 'all' })
                     setSelectedReport(null)
                   }}
                   className={`flex flex-col items-center justify-center border-b-[3px] pb-3 pt-4 cursor-pointer ${

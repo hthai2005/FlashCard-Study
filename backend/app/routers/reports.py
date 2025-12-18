@@ -6,6 +6,7 @@ from sqlalchemy import and_, func
 from app.database import get_db
 from app import models, schemas, auth
 from app.routers.admin import require_admin
+from app.routers.notifications import create_notification
 
 router = APIRouter()
 
@@ -221,16 +222,24 @@ def resolve_report(
                 if card.set.owner:
                     report.item_owner_username = card.set.owner.username
     
+    # Save owner info before deletion
+    item_owner_id = None
+    item_title = None
+    
     # Perform action based on resolve_data.action
     if resolve_data.action == 'delete_deck':
         if report.report_type != 'deck':
             raise HTTPException(status_code=400, detail="Action 'delete_deck' only applies to deck reports")
         deck = db.query(models.FlashcardSet).options(
-            joinedload(models.FlashcardSet.flashcards)
+            joinedload(models.FlashcardSet.flashcards),
+            joinedload(models.FlashcardSet.owner)
         ).filter(
             models.FlashcardSet.id == report.reported_item_id
         ).first()
         if deck:
+            item_owner_id = deck.owner_id
+            item_title = deck.title
+            
             # Delete all study_sessions related to this deck first
             db.query(models.StudySession).filter(
                 models.StudySession.set_id == deck.id
@@ -248,10 +257,14 @@ def resolve_report(
     elif resolve_data.action == 'delete_card':
         if report.report_type != 'card':
             raise HTTPException(status_code=400, detail="Action 'delete_card' only applies to card reports")
-        card = db.query(models.Flashcard).filter(
+        card = db.query(models.Flashcard).options(
+            joinedload(models.Flashcard.set).joinedload(models.FlashcardSet.owner)
+        ).filter(
             models.Flashcard.id == report.reported_item_id
         ).first()
         if card:
+            item_owner_id = card.set.owner_id
+            item_title = f"Thẻ: {card.front}"
             db.delete(card)
     
     # Update report status
@@ -259,6 +272,43 @@ def resolve_report(
     report.resolved_by = current_user.id
     report.resolved_at = func.now()
     report.admin_notes = resolve_data.admin_notes
+    db.flush()
+    
+    # Create notification for reporter (người báo cáo)
+    if report.reporter_id:
+        action_text = "xóa bộ thẻ" if resolve_data.action == 'delete_deck' else "xóa thẻ"
+        create_notification(
+            db=db,
+            user_id=report.reporter_id,
+            type='report_resolved',
+            title='Báo cáo đã được xử lý',
+            message=f'Báo cáo của bạn đã được admin xử lý bằng cách {action_text}.',
+            item_id=report.id,
+            action_path=f'/admin/moderation?tab=resolved'
+        )
+    
+    # Create notification for item owner (người sở hữu bị xóa)
+    if item_owner_id and item_owner_id != report.reporter_id:
+        if resolve_data.action == 'delete_deck':
+            create_notification(
+                db=db,
+                user_id=item_owner_id,
+                type='item_deleted',
+                title='Bộ thẻ đã bị xóa',
+                message=f'Bộ thẻ "{item_title}" của bạn đã bị admin xóa do vi phạm quy tắc cộng đồng.',
+                item_id=report.reported_item_id,
+                action_path='/sets'  # Navigate to sets page (deck đã bị xóa nên không thể navigate đến deck đó)
+            )
+        elif resolve_data.action == 'delete_card':
+            create_notification(
+                db=db,
+                user_id=item_owner_id,
+                type='item_deleted',
+                title='Thẻ đã bị xóa',
+                message=f'Thẻ "{item_title}" của bạn đã bị admin xóa do vi phạm quy tắc cộng đồng.',
+                item_id=report.reported_item_id,
+                action_path='/sets'  # Navigate to sets page
+            )
     
     db.commit()
     db.refresh(report)
@@ -297,6 +347,19 @@ def reject_report(
     report.resolved_by = current_user.id
     report.resolved_at = func.now()
     report.admin_notes = reject_data.admin_notes
+    db.flush()
+    
+    # Create notification for reporter (người báo cáo)
+    if report.reporter_id:
+        create_notification(
+            db=db,
+            user_id=report.reporter_id,
+            type='report_rejected',
+            title='Báo cáo đã bị từ chối',
+            message=f'Báo cáo của bạn đã bị admin từ chối. Nội dung được báo cáo không vi phạm quy tắc.',
+            item_id=report.id,
+            action_path=f'/admin/moderation?tab=resolved'
+        )
     
     db.commit()
     db.refresh(report)

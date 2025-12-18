@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationContext'
 import api from '../services/api'
@@ -8,6 +8,7 @@ import AdminSidebar from '../components/AdminSidebar'
 import AdminHeader from '../components/AdminHeader'
 
 export default function SetManagement() {
+  const [searchParams] = useSearchParams()
   const { user, logout, loading: authLoading } = useAuth()
   const { addNotification } = useNotifications()
   const navigate = useNavigate()
@@ -16,6 +17,7 @@ export default function SetManagement() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSets, setSelectedSets] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('pending') === 'true' ? 'pending' : 'all')
   const [stats, setStats] = useState({
     pendingReview: 0,
     totalSets: 0,
@@ -23,6 +25,21 @@ export default function SetManagement() {
   })
   const setsPerPage = 5
   const processedPendingSets = useRef(new Set()) // Track which pending sets we've already notified about
+
+  // Update status filter when URL param changes
+  useEffect(() => {
+    const pendingParam = searchParams.get('pending')
+    const statusParam = searchParams.get('status')
+    if (pendingParam === 'true') {
+      setStatusFilter('pending')
+    } else if (statusParam === 'approved') {
+      setStatusFilter('approved')
+    } else if (statusParam === 'rejected') {
+      setStatusFilter('rejected')
+    } else {
+      setStatusFilter('all')
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -169,10 +186,20 @@ export default function SetManagement() {
     return new Date(dateString).toISOString().split('T')[0]
   }
 
-  const filteredSets = sets.filter(set =>
-    set.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    set.creator?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Update status filter when URL param changes
+  useEffect(() => {
+    const pendingParam = searchParams.get('pending')
+    if (pendingParam === 'true') {
+      setStatusFilter('pending')
+    }
+  }, [searchParams])
+
+  const filteredSets = sets.filter(set => {
+    const matchesSearch = set.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      set.creator?.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesStatus = statusFilter === 'all' || set.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
 
   const paginatedSets = filteredSets.slice(
     (currentPage - 1) * setsPerPage,
@@ -236,13 +263,61 @@ export default function SetManagement() {
           {/* Actions and Table */}
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap justify-between gap-4 py-3">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => toast.info('Chức năng lọc sẽ sớm có mặt!')}
-                  className="p-2.5 rounded-lg bg-white/5 text-black dark:text-white hover:bg-white/10 transition-colors"
-                >
-                  <span className="material-symbols-outlined">filter_list</span>
-                </button>
+              <div className="flex gap-2 items-center">
+                <div className="flex gap-1 bg-white/5 rounded-lg p-1">
+                  <button
+                    onClick={() => {
+                      setStatusFilter('all')
+                      setSearchParams({})
+                    }}
+                    className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                      statusFilter === 'all'
+                        ? 'bg-primary text-white'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-white/10'
+                    }`}
+                  >
+                    Tất Cả
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('pending')
+                      setSearchParams({ pending: 'true' })
+                    }}
+                    className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                      statusFilter === 'pending'
+                        ? 'bg-yellow-500 text-white'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-white/10'
+                    }`}
+                  >
+                    Chờ Duyệt
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('approved')
+                      setSearchParams({ status: 'approved' })
+                    }}
+                    className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                      statusFilter === 'approved'
+                        ? 'bg-green-500 text-white'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-white/10'
+                    }`}
+                  >
+                    Đã Duyệt
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('rejected')
+                      setSearchParams({ status: 'rejected' })
+                    }}
+                    className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                      statusFilter === 'rejected'
+                        ? 'bg-red-500 text-white'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-white/10'
+                    }`}
+                  >
+                    Đã Từ Chối
+                  </button>
+                </div>
                 <button
                   onClick={() => toast.info('Chức năng sắp xếp sẽ sớm có mặt!')}
                   className="p-2.5 rounded-lg bg-white/5 text-black dark:text-white hover:bg-white/10 transition-colors"
