@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models, schemas, auth
 from app.schemas import AIGenerateRequest, ImportRequest
+from app.routers.notifications import create_notification
 import os
 from openai import OpenAI
 
@@ -92,21 +93,15 @@ def import_flashcards(
         if not request.title:
             raise HTTPException(status_code=400, detail="Title is required when creating new set")
         
-        # Logic: 
-        # - Private sets (is_public=False): Always approved (no need for admin review)
-        # - Public sets (is_public=True): Approved if admin, otherwise pending (needs admin review)
-        if request.is_public:
-            # Public set: needs admin approval unless user is admin
-            if current_user.is_admin:
-                status = 'approved'
-                print(f"✅ Admin created public set - auto approved")
-            else:
-                status = 'pending'
-                print(f"⏳ Non-admin created public set - status: pending (needs admin review)")
-        else:
-            # Private set: always approved (no review needed)
+        # Logic for import (paste text):
+        # - Admin: Auto approved (bất kể public hay private)
+        # - Non-admin: Always pending (cần admin duyệt, bất kể public hay private)
+        if current_user.is_admin:
             status = 'approved'
-            print(f"✅ Private set created - auto approved (no review needed)")
+            print(f"✅ Admin imported set - auto approved")
+        else:
+            status = 'pending'
+            print(f"⏳ Non-admin imported set - status: pending (needs admin review)")
         
         print(f"📝 Creating set: title={request.title}, is_public={request.is_public}, status={status}, user_is_admin={current_user.is_admin}")
         
@@ -120,6 +115,18 @@ def import_flashcards(
         db.add(db_set)
         db.flush()  # Get the set_id
         set_id = db_set.id
+        
+        # Create notification if set is pending
+        if status == 'pending':
+            create_notification(
+                db=db,
+                user_id=current_user.id,
+                type='set_pending',
+                title='Bộ thẻ đang chờ duyệt',
+                message=f'Bộ thẻ "{request.title}" của bạn đang chờ admin duyệt. Bạn sẽ nhận thông báo khi được duyệt.',
+                item_id=set_id,
+                action_path=f'/sets/{set_id}'
+            )
     
     flashcards_created = []
     
@@ -156,6 +163,9 @@ def import_flashcards(
         db.commit()
         db.refresh(db_set)
         
+        # Verify final status after commit
+        print(f"✅ Final status after commit (import text): set_id={db_set.id}, status={db_set.status}, is_public={db_set.is_public}")
+        
         return {
             "message": f"Successfully imported {len(flashcards_created)} flashcards",
             "count": len(flashcards_created),
@@ -164,7 +174,8 @@ def import_flashcards(
                 "id": db_set.id,
                 "title": db_set.title,
                 "description": db_set.description,
-                "is_public": db_set.is_public
+                "is_public": db_set.is_public,
+                "status": db_set.status  # Include status in response
             }
         }
     
@@ -181,7 +192,7 @@ async def import_flashcards_from_file(
     set_id: Optional[int] = Form(None),
     title: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
-    is_public: bool = Form(False),
+    is_public: str = Form("false"),  # Accept string to handle FormData properly
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -190,6 +201,9 @@ async def import_flashcards_from_file(
     If set_id is provided, import to existing set.
     If set_id is None, create new set with title, description, and is_public.
     """
+    # Convert is_public from string to boolean
+    is_public_bool = is_public.lower() in ('true', '1', 'yes') if isinstance(is_public, str) else bool(is_public)
+    
     # If set_id is provided, use existing set
     if set_id:
         db_set = db.query(models.FlashcardSet).filter(models.FlashcardSet.id == set_id).first()
@@ -203,34 +217,44 @@ async def import_flashcards_from_file(
         if not title:
             raise HTTPException(status_code=400, detail="Title is required when creating new set")
         
-        # Logic: 
-        # - Private sets (is_public=False): Always approved (no need for admin review)
-        # - Public sets (is_public=True): Approved if admin, otherwise pending (needs admin review)
-        if is_public:
-            # Public set: needs admin approval unless user is admin
-            if current_user.is_admin:
-                status = 'approved'
-                print(f"✅ Admin created public set - auto approved")
-            else:
-                status = 'pending'
-                print(f"⏳ Non-admin created public set - status: pending (needs admin review)")
-        else:
-            # Private set: always approved (no review needed)
+        # Logic for import file:
+        # - Admin: Auto approved (bất kể public hay private)
+        # - Non-admin: Always pending (cần admin duyệt, bất kể public hay private)
+        if current_user.is_admin:
             status = 'approved'
-            print(f"✅ Private set created - auto approved (no review needed)")
+            print(f"✅ Admin imported set - auto approved")
+        else:
+            status = 'pending'
+            print(f"⏳ Non-admin imported set - status: pending (needs admin review)")
         
-        print(f"📝 Creating set: title={title}, is_public={is_public}, status={status}, user_is_admin={current_user.is_admin}")
+        print(f"📝 Creating set: title={title}, is_public={is_public_bool}, status={status}, user_is_admin={current_user.is_admin}, user_id={current_user.id}")
         
         db_set = models.FlashcardSet(
             title=title,
             description=description or "",
-            is_public=is_public,
+            is_public=is_public_bool,
             owner_id=current_user.id,
-            status=status
+            status=status  # Explicitly set status
         )
         db.add(db_set)
         db.flush()  # Get the set_id
         set_id = db_set.id
+        
+        # Verify status was set correctly
+        print(f"🔍 Set created with ID={set_id}, status={db_set.status}, is_public={db_set.is_public}")
+        
+        # Create notification if set is pending
+        if status == 'pending':
+            create_notification(
+                db=db,
+                user_id=current_user.id,
+                type='set_pending',
+                title='Bộ thẻ đang chờ duyệt',
+                message=f'Bộ thẻ "{title}" của bạn đang chờ admin duyệt. Bạn sẽ nhận thông báo khi được duyệt.',
+                item_id=set_id,
+                action_path=f'/sets/{set_id}'
+            )
+            print(f"📬 Notification created for user {current_user.id} about pending set {set_id}")
     
     # Check file extension
     file_extension = file.filename.split('.')[-1].lower() if file.filename else ''
@@ -296,6 +320,9 @@ async def import_flashcards_from_file(
         db.commit()
         db.refresh(db_set)
         
+        # Verify final status after commit
+        print(f"✅ Final status after commit (import file): set_id={db_set.id}, status={db_set.status}, is_public={db_set.is_public}")
+        
         return {
             "message": f"Successfully imported {len(flashcards_created)} flashcards",
             "count": len(flashcards_created),
@@ -304,7 +331,8 @@ async def import_flashcards_from_file(
                 "id": db_set.id,
                 "title": db_set.title,
                 "description": db_set.description,
-                "is_public": db_set.is_public
+                "is_public": db_set.is_public,
+                "status": db_set.status  # Include status in response
             }
         }
     

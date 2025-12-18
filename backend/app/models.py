@@ -19,6 +19,7 @@ class User(Base):
     flashcard_sets = relationship("FlashcardSet", back_populates="owner", cascade="all, delete-orphan")
     study_sessions = relationship("StudySession", back_populates="user", cascade="all, delete-orphan")
     leaderboard_entry = relationship("Leaderboard", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 
 class FlashcardSet(Base):
     __tablename__ = "flashcard_sets"
@@ -127,4 +128,20 @@ class Report(Base):
     reporter = relationship("User", foreign_keys=[reporter_id])
     resolver = relationship("User", foreign_keys=[resolved_by])
     item_owner = relationship("User", foreign_keys=[item_owner_id])
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    type = Column(String, nullable=False)  # 'set_pending', 'set_approved', 'set_rejected', 'report_resolved', etc.
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    item_id = Column(Integer, nullable=True)  # ID of related item (set_id, report_id, etc.)
+    read = Column(Boolean, default=False)
+    action_path = Column(String, nullable=True)  # Path to navigate when clicked
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    user = relationship("User", back_populates="notifications")
 

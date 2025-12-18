@@ -6,6 +6,7 @@ from app import models, schemas, auth
 from pathlib import Path
 import time
 from app.schemas import UserResponse
+from app.routers.notifications import create_notification
 
 router = APIRouter()
 
@@ -272,6 +273,20 @@ def approve_flashcard_set(
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     
     db_set.status = 'approved'
+    db.flush()
+    
+    # Create notification for set owner
+    if db_set.owner_id:
+        create_notification(
+            db=db,
+            user_id=db_set.owner_id,
+            type='set_approved',
+            title='Bộ thẻ đã được duyệt',
+            message=f'Bộ thẻ "{db_set.title}" của bạn đã được admin duyệt và có thể sử dụng.',
+            item_id=db_set.id,
+            action_path=f'/sets/{db_set.id}'
+        )
+    
     db.commit()
     db.refresh(db_set)
     
@@ -296,6 +311,20 @@ def reject_flashcard_set(
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     
     db_set.status = 'rejected'
+    db.flush()
+    
+    # Create notification for set owner
+    if db_set.owner_id:
+        create_notification(
+            db=db,
+            user_id=db_set.owner_id,
+            type='set_rejected',
+            title='Bộ thẻ đã bị từ chối',
+            message=f'Bộ thẻ "{db_set.title}" của bạn đã bị admin từ chối.',
+            item_id=db_set.id,
+            action_path=f'/sets/{db_set.id}'
+        )
+    
     db.commit()
     db.refresh(db_set)
     

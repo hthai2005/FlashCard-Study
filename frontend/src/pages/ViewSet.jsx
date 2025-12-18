@@ -174,11 +174,21 @@ export default function ViewSet() {
   }
 
   const handleStartStudy = () => {
+    // Check if set is pending
+    if (setInfo && setInfo.status === 'pending' && !user?.is_admin) {
+      toast.error('Bộ thẻ này đang chờ admin duyệt. Vui lòng đợi admin duyệt trước khi học.')
+      return
+    }
     // Start fresh study session
     navigate(`/study/${id}`)
   }
 
   const handleContinueStudy = () => {
+    // Check if set is pending
+    if (setInfo && setInfo.status === 'pending' && !user?.is_admin) {
+      toast.error('Bộ thẻ này đang chờ admin duyệt. Vui lòng đợi admin duyệt trước khi học.')
+      return
+    }
     // Continue from where user left off (will load due cards)
     navigate(`/study/${id}`)
   }
@@ -703,7 +713,16 @@ export default function ViewSet() {
                 </div>
                 <div className="flex items-start gap-3">
                   {/* Show different buttons based on study progress */}
-                  {!progress || progress.cards_studied === 0 ? (
+                  {setInfo?.status === 'pending' && !user?.is_admin ? (
+                    <button
+                      disabled
+                      className="flex h-12 px-6 items-center justify-center rounded-lg bg-gray-400 text-white font-bold cursor-not-allowed shadow-md gap-2"
+                      title="Bộ thẻ đang chờ admin duyệt"
+                    >
+                      <span className="material-symbols-outlined text-xl">hourglass_empty</span>
+                      <span>Đợi Admin Duyệt</span>
+                    </button>
+                  ) : !progress || progress.cards_studied === 0 ? (
                     <button
                       onClick={handleStartStudy}
                       className="flex h-12 px-6 items-center justify-center rounded-lg bg-primary text-white font-bold hover:bg-blue-600 transition-all shadow-md gap-2"

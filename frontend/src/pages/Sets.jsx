@@ -549,7 +549,12 @@ export default function Sets() {
             <p className="text-slate-900 dark:text-white text-base font-bold flex-1">
               {set.title}
             </p>
-            {!isOwner && set.is_public && (
+            {set.status === 'pending' && (
+              <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-full">
+                Đợi Duyệt
+              </span>
+            )}
+            {!isOwner && set.is_public && set.status === 'approved' && (
               <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
                 Công khai
               </span>
@@ -609,11 +614,24 @@ export default function Sets() {
             <span>Xem</span>
           </button>
           <button
-            onClick={() => navigate(`/study/${set.id}`)}
-            className="flex flex-1 items-center justify-center gap-2 h-10 px-4 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors"
+            onClick={() => {
+              if (set.status === 'pending' && !user?.is_admin) {
+                toast.error('Bộ thẻ này đang chờ admin duyệt. Vui lòng đợi admin duyệt trước khi học.')
+                return
+              }
+              navigate(`/study/${set.id}`)
+            }}
+            disabled={set.status === 'pending' && !user?.is_admin}
+            className={`flex flex-1 items-center justify-center gap-2 h-10 px-4 rounded-lg text-sm font-bold transition-colors ${
+              set.status === 'pending' && !user?.is_admin
+                ? 'bg-gray-400 text-white cursor-not-allowed'
+                : 'bg-primary text-white hover:bg-primary/90'
+            }`}
           >
-            <span className="material-symbols-outlined">style</span>
-            <span>Học</span>
+            <span className="material-symbols-outlined">
+              {set.status === 'pending' && !user?.is_admin ? 'hourglass_empty' : 'style'}
+            </span>
+            <span>{set.status === 'pending' && !user?.is_admin ? 'Đợi Duyệt' : 'Học'}</span>
           </button>
           {isOwner ? (
             <button

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { useAuth } from './AuthContext'
+import api from '../services/api'
 
 const NotificationContext = createContext()
 
@@ -7,6 +8,7 @@ export function NotificationProvider({ children }) {
   const { user } = useAuth()
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [loading, setLoading] = useState(false)
 
   // Get storage key based on user ID
   const getStorageKey = () => {
@@ -14,30 +16,126 @@ export function NotificationProvider({ children }) {
     return `notifications_${user.id}`
   }
 
-  // Load notifications from localStorage on mount or when user changes
-  useEffect(() => {
-    const storageKey = getStorageKey()
-    if (!storageKey) {
+  // Fetch notifications from backend (for admin) and localStorage
+  const fetchNotifications = async () => {
+    if (!user) {
       setNotifications([])
       setUnreadCount(0)
       return
     }
 
-    const savedNotifications = localStorage.getItem(storageKey)
-    if (savedNotifications) {
+    try {
+      setLoading(true)
+      const allNotifications = []
+
+      // Fetch from backend
       try {
-        const parsed = JSON.parse(savedNotifications)
-        setNotifications(parsed)
-        setUnreadCount(parsed.filter(n => !n.read).length)
-      } catch (e) {
-        console.error('Error loading notifications:', e)
-        setNotifications([])
-        setUnreadCount(0)
+        if (user.is_admin) {
+          // Admin: Get pending sets and reports
+          const response = await api.get('/api/notifications/')
+          const backendData = response.data
+
+          // Convert backend notifications to frontend format
+          backendData.notifications.forEach((notif) => {
+            // Use unique ID combining type and item_id to avoid conflicts
+            allNotifications.push({
+              id: `admin_${notif.type}_${notif.id}`,
+              type: notif.type === 'pending_set' ? 'warning' : 'error',
+              title: notif.title,
+              message: notif.message,
+              timestamp: notif.created_at,
+              read: false,
+              action: notif.type === 'pending_set' 
+                ? { type: 'navigate', path: `/admin/sets?pending=true` }
+                : { type: 'navigate', path: `/admin/reports?pending=true` },
+              item_id: notif.item_id,
+              notification_type: notif.type
+            })
+          })
+        }
+        
+        // All users: Get user-specific notifications (set pending, approved, etc.)
+        try {
+          const userResponse = await api.get('/api/notifications/user')
+          const userData = userResponse.data
+
+          // Convert user notifications to frontend format
+          userData.notifications.forEach((notif) => {
+            allNotifications.push({
+              id: `user_${notif.id}`,
+              type: notif.type === 'set_approved' ? 'success' : 
+                    notif.type === 'set_pending' ? 'warning' : 
+                    notif.type === 'set_rejected' ? 'error' : 'info',
+              title: notif.title,
+              message: notif.message,
+              timestamp: notif.created_at,
+              read: notif.read,
+              action: notif.action_path ? { type: 'navigate', path: notif.action_path } : null,
+              item_id: notif.item_id,
+              notification_type: notif.type
+            })
+          })
+        } catch (userError) {
+          console.error('Error fetching user notifications:', userError)
+        }
+      } catch (error) {
+        console.error('Error fetching backend notifications:', error)
+        // Continue with localStorage notifications even if backend fails
       }
-    } else {
-      setNotifications([])
-      setUnreadCount(0)
+
+      // Load from localStorage
+      const storageKey = getStorageKey()
+      if (storageKey) {
+        const savedNotifications = localStorage.getItem(storageKey)
+        if (savedNotifications) {
+          try {
+            const parsed = JSON.parse(savedNotifications)
+            // Merge with backend notifications, avoiding duplicates
+            parsed.forEach((localNotif) => {
+              // Only add if not already in allNotifications (by id and type)
+              const exists = allNotifications.some(
+                n => n.id === localNotif.id && n.notification_type === localNotif.notification_type
+              )
+              if (!exists) {
+                allNotifications.push(localNotif)
+              }
+            })
+          } catch (e) {
+            console.error('Error loading localStorage notifications:', e)
+          }
+        }
+      }
+
+      // Sort by timestamp descending
+      allNotifications.sort((a, b) => {
+        const timeA = new Date(a.timestamp || a.created_at || 0).getTime()
+        const timeB = new Date(b.timestamp || b.created_at || 0).getTime()
+        return timeB - timeA
+      })
+
+      setNotifications(allNotifications)
+      setUnreadCount(allNotifications.filter(n => !n.read).length)
+    } catch (error) {
+      console.error('Error fetching notifications:', error)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  // Load notifications on mount or when user changes
+  useEffect(() => {
+    fetchNotifications()
+  }, [user?.id, user?.is_admin])
+
+  // Poll for new notifications every 30 seconds (for all users)
+  useEffect(() => {
+    if (!user) return
+
+    const interval = setInterval(() => {
+      fetchNotifications()
+    }, 30000) // 30 seconds
+
+    return () => clearInterval(interval)
   }, [user?.id])
 
   // Save notifications to localStorage whenever they change
@@ -69,16 +167,35 @@ export function NotificationProvider({ children }) {
     setNotifications(prev => [newNotification, ...prev].slice(0, 50)) // Keep last 50 notifications
   }
 
-  const markAsRead = (id) => {
+  const markAsRead = async (id) => {
+    // Update local state immediately
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     )
+    
+    // Update backend if it's a user notification
+    if (id.startsWith('user_')) {
+      const notificationId = parseInt(id.replace('user_', ''))
+      try {
+        await api.put(`/api/notifications/user/${notificationId}/read`)
+      } catch (error) {
+        console.error('Error marking notification as read:', error)
+      }
+    }
   }
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
+    // Update local state immediately
     setNotifications(prev =>
       prev.map(n => ({ ...n, read: true }))
     )
+    
+    // Update backend
+    try {
+      await api.put('/api/notifications/user/read-all')
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error)
+    }
   }
 
   const deleteNotification = (id) => {
@@ -158,12 +275,14 @@ export function NotificationProvider({ children }) {
       value={{
         notifications,
         unreadCount,
+        loading,
         addNotification,
         addNotificationForUser,
         markAsRead,
         markAllAsRead,
         deleteNotification,
-        clearAll
+        clearAll,
+        refreshNotifications: fetchNotifications
       }}
     >
       {children}

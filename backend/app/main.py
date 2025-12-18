@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.database import engine, Base
-from app.routers import auth, flashcards, study, leaderboard, ai, admin, reports
+from app.routers import auth, flashcards, study, leaderboard, ai, admin, reports, notifications
 from pathlib import Path
 from sqlalchemy import text, inspect
 
@@ -199,11 +199,68 @@ def migrate_add_report_snapshot_fields():
     except Exception as e:
         print(f"⚠️  Lỗi khi migration report snapshot fields: {e}")
 
+# Migration: Create notifications table if not exists
+def migrate_create_notifications_table():
+    """Tạo bảng notifications nếu chưa có"""
+    try:
+        if not str(engine.url).startswith("sqlite"):
+            with engine.begin() as conn:
+                check_query = text("""
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_name='notifications';
+                """)
+                result = conn.execute(check_query)
+                
+                if result.fetchone() is None:
+                    create_query = text("""
+                        CREATE TABLE notifications (
+                            id SERIAL PRIMARY KEY,
+                            user_id INTEGER NOT NULL REFERENCES users(id),
+                            type VARCHAR(50) NOT NULL,
+                            title VARCHAR(255) NOT NULL,
+                            message TEXT NOT NULL,
+                            item_id INTEGER,
+                            read BOOLEAN DEFAULT FALSE,
+                            action_path VARCHAR(255),
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                        );
+                    """)
+                    conn.execute(create_query)
+                    print("✅ Đã tạo bảng notifications")
+                else:
+                    print("ℹ️  Bảng notifications đã tồn tại")
+        else:
+            inspector = inspect(engine)
+            tables = inspector.get_table_names()
+            if 'notifications' not in tables:
+                with engine.begin() as conn:
+                    create_query = text("""
+                        CREATE TABLE notifications (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL REFERENCES users(id),
+                            type VARCHAR(50) NOT NULL,
+                            title VARCHAR(255) NOT NULL,
+                            message TEXT NOT NULL,
+                            item_id INTEGER,
+                            read BOOLEAN DEFAULT 0,
+                            action_path VARCHAR(255),
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        );
+                    """)
+                    conn.execute(create_query)
+                    print("✅ Đã tạo bảng notifications (SQLite)")
+            else:
+                print("ℹ️  Bảng notifications đã tồn tại (SQLite)")
+    except Exception as e:
+        print(f"⚠️  Lỗi khi migration notifications table: {e}")
+
 # Chạy migrations
 migrate_add_avatar_url()
 migrate_add_status()
 migrate_create_reports_table()
 migrate_add_report_snapshot_fields()
+migrate_create_notifications_table()
 
 # Tự động tạo admin account nếu chưa có
 def create_default_admin():
@@ -288,6 +345,7 @@ app.include_router(leaderboard.router, prefix="/api/leaderboard", tags=["Leaderb
 app.include_router(ai.router, prefix="/api/ai", tags=["AI"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
+app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
 
 # Mount static files for avatar uploads
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

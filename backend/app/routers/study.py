@@ -23,6 +23,14 @@ def get_cards_due_for_review(
     if not db_set:
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     
+    # Check if set is pending - không cho học nếu pending (trừ admin)
+    if not current_user.is_admin:
+        if db_set.status == 'pending':
+            raise HTTPException(
+                status_code=403, 
+                detail="Bộ thẻ này đang chờ admin duyệt. Vui lòng đợi admin duyệt trước khi học."
+            )
+    
     # Check access permission
     if not current_user.is_admin:
         if db_set.owner_id != current_user.id and not db_set.is_public:
@@ -80,6 +88,15 @@ def submit_answer(
     if not flashcard:
         raise HTTPException(status_code=404, detail="Flashcard not found")
     
+    # Check if set is pending - không cho học nếu pending (trừ admin)
+    db_set = db.query(models.FlashcardSet).filter(models.FlashcardSet.id == flashcard.set_id).first()
+    if db_set and not current_user.is_admin:
+        if db_set.status == 'pending':
+            raise HTTPException(
+                status_code=403, 
+                detail="Bộ thẻ này đang chờ admin duyệt. Vui lòng đợi admin duyệt trước khi học."
+            )
+    
     # Get or create study record
     study_record = db.query(models.StudyRecord).filter(
         models.StudyRecord.flashcard_id == answer.flashcard_id,
@@ -115,6 +132,14 @@ def create_study_session(
     db_set = db.query(models.FlashcardSet).filter(models.FlashcardSet.id == session_data.set_id).first()
     if not db_set:
         raise HTTPException(status_code=404, detail="Flashcard set not found")
+    
+    # Check if set is pending - không cho học nếu pending (trừ admin)
+    if not current_user.is_admin:
+        if db_set.status == 'pending':
+            raise HTTPException(
+                status_code=403, 
+                detail="Bộ thẻ này đang chờ admin duyệt. Vui lòng đợi admin duyệt trước khi học."
+            )
     
     db_session = models.StudySession(
         user_id=current_user.id,

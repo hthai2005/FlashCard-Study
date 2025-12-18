@@ -220,3 +220,39 @@ class ReportResolve(BaseModel):
 class ReportReject(BaseModel):
     admin_notes: Optional[str] = None
 
+# Notification schemas
+class NotificationItem(BaseModel):
+    id: int
+    type: str  # 'pending_set', 'pending_report'
+    title: str
+    message: str
+    item_id: int  # set_id or report_id
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class NotificationResponse(BaseModel):
+    pending_sets_count: int
+    pending_reports_count: int
+    total_count: int
+    notifications: List[NotificationItem]
+
+# User notification schemas
+class UserNotification(BaseModel):
+    id: int
+    type: str  # 'set_pending', 'set_approved', 'set_rejected', etc.
+    title: str
+    message: str
+    item_id: Optional[int] = None
+    read: bool
+    action_path: Optional[str] = None
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class UserNotificationResponse(BaseModel):
+    notifications: List[UserNotification]
+    unread_count: int
+

@@ -8,6 +8,7 @@ from app.schemas import (
     FlashcardSetResponse, FlashcardSetCreate, FlashcardSetUpdate, FlashcardSetWithCards,
     FlashcardResponse, FlashcardCreate, FlashcardBase
 )
+from app.routers.notifications import create_notification
 
 router = APIRouter()
 
@@ -17,15 +18,23 @@ def create_flashcard_set(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
+    """
+    Create a new flashcard set with approval logic:
+    - Admin: Auto approved (bất kể public hay private)
+    - Non-admin: Always pending (cần admin duyệt, bất kể public hay private)
+    This applies to ALL ways of creating sets (normal create, import file, etc.)
+    """
     # Logic: 
-    # - Private sets (is_public=False): Always approved (no need for admin review)
-    # - Public sets (is_public=True): Approved if admin, otherwise pending (needs admin review)
-    if set_data.is_public:
-        # Public set: needs admin approval unless user is admin
-        status = 'approved' if current_user.is_admin else 'pending'
-    else:
-        # Private set: always approved (no review needed)
+    # - Admin: Auto approved (bất kể public hay private)
+    # - Non-admin: Always pending (cần admin duyệt, bất kể public hay private)
+    if current_user.is_admin:
         status = 'approved'
+        print(f"✅ Admin created set - auto approved")
+    else:
+        status = 'pending'
+        print(f"⏳ Non-admin created set - status: pending (needs admin review)")
+    
+    print(f"📝 Creating set: title={set_data.title}, is_public={set_data.is_public}, status={status}, user_is_admin={current_user.is_admin}")
     
     db_set = models.FlashcardSet(
         **set_data.dict(),
@@ -33,6 +42,21 @@ def create_flashcard_set(
         status=status
     )
     db.add(db_set)
+    db.flush()  # Get the set_id
+    
+    # Create notification if set is pending
+    if status == 'pending':
+        from app.routers.notifications import create_notification
+        create_notification(
+            db=db,
+            user_id=current_user.id,
+            type='set_pending',
+            title='Bộ thẻ đang chờ duyệt',
+            message=f'Bộ thẻ "{set_data.title}" của bạn đang chờ admin duyệt. Bạn sẽ nhận thông báo khi được duyệt.',
+            item_id=db_set.id,
+            action_path=f'/sets/{db_set.id}'
+        )
+    
     db.commit()
     db.refresh(db_set)
     # Reload with owner relationship
@@ -224,7 +248,7 @@ def get_flashcards(
     
     # Admin can access any set
     # Regular users can access:
-    # - Their own sets (regardless of status)
+    # - Their own sets (regardless of status - để họ có thể xem cards)
     # - Public sets that are approved
     if not current_user.is_admin:
         if db_set.owner_id != current_user.id:
