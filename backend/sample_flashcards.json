@@ -1,0 +1,22 @@
+[
+  {
+    "front": "What is JavaScript?",
+    "back": "JavaScript is a programming language used for web development"
+  },
+  {
+    "front": "What is CSS?",
+    "back": "CSS is a stylesheet language used for styling web pages"
+  },
+  {
+    "front": "What is HTML?",
+    "back": "HTML is a markup language used for creating web pages"
+  },
+  {
+    "front": "What is Node.js?",
+    "back": "Node.js is a JavaScript runtime built on Chrome's V8 engine"
+  },
+  {
+    "front": "What is MongoDB?",
+    "back": "MongoDB is a NoSQL database that stores data in JSON-like documents"
+  }
+]

@@ -131,6 +131,7 @@ class StudyProgress(BaseModel):
     cards_to_review: int
     cards_mastered: int
     cards_studied: int  # Number of unique cards studied by this user
+    cards_correct: int  # Number of unique cards answered correctly at least once
     daily_goal: int
     daily_progress: int
     streak_days: int
@@ -165,8 +166,11 @@ class AIGenerateRequest(BaseModel):
     difficulty: str = "medium"  # easy, medium, hard
 
 class ImportRequest(BaseModel):
-    set_id: int
+    set_id: int = None  # Optional: if None, create new set
     file_content: str  # CSV or JSON content
+    title: str = None  # Required if set_id is None
+    description: str = None
+    is_public: bool = False
 
 # Auth schemas
 class LoginRequest(BaseModel):

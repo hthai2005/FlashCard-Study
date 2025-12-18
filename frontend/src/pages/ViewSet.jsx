@@ -21,6 +21,10 @@ export default function ViewSet() {
   const [showAddCardModal, setShowAddCardModal] = useState(false)
   const [newCard, setNewCard] = useState({ front: '', back: '' })
   const [isAddingCard, setIsAddingCard] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importFile, setImportFile] = useState(null)
+  const [importMode, setImportMode] = useState('file') // 'file' or 'paste'
+  const [importFileContent, setImportFileContent] = useState('')
   const [progress, setProgress] = useState(null)
   const [lastStudied, setLastStudied] = useState(null)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -86,6 +90,59 @@ export default function ViewSet() {
       toast.error(errorMessage)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleFileImport = async (e) => {
+    e.preventDefault()
+    if (!id) {
+      toast.error('Không tìm thấy bộ thẻ')
+      return
+    }
+    
+    try {
+      if (importMode === 'file' && importFile) {
+        // Upload file
+        const formData = new FormData()
+        formData.append('file', importFile)
+        
+        const response = await api.post(`/api/ai/import/file?set_id=${id}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+        toast.success(`Đã nhập ${response.data.count} flashcard thành công!`)
+      } else if (importMode === 'paste' && importFileContent) {
+        // Paste content
+        await api.post('/api/ai/import', {
+          set_id: parseInt(id),
+          file_content: importFileContent
+        })
+        toast.success('Đã nhập flashcard thành công!')
+      } else {
+        toast.error('Vui lòng chọn file hoặc dán nội dung')
+        return
+      }
+      
+      setShowImportModal(false)
+      setImportFile(null)
+      setImportFileContent('')
+      fetchSetData() // Refresh cards
+    } catch (error) {
+      const errorMessage = error.response?.data?.detail || 'Không thể nhập flashcard'
+      toast.error(errorMessage)
+    }
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      const extension = file.name.split('.').pop().toLowerCase()
+      if (extension !== 'csv' && extension !== 'json') {
+        toast.error('Chỉ chấp nhận file CSV hoặc JSON')
+        return
+      }
+      setImportFile(file)
     }
   }
 
@@ -412,13 +469,22 @@ export default function ViewSet() {
                     </span>
                   </div>
                   {isOwner && (
-                    <button
-                      onClick={() => setShowAddCardModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-                    >
-                      <span className="material-symbols-outlined">add</span>
-                      <span>Thêm Thẻ</span>
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowImportModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        <span className="material-symbols-outlined">upload_file</span>
+                        <span>Nhập Flashcard</span>
+                      </button>
+                      <button
+                        onClick={() => setShowAddCardModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                      >
+                        <span className="material-symbols-outlined">add</span>
+                        <span>Thêm Thẻ</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -992,6 +1058,95 @@ export default function ViewSet() {
                   className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUpdating ? 'Đang cập nhật...' : 'Cập Nhật'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Nhập Flashcard</h2>
+            <form onSubmit={handleFileImport} className="space-y-4">
+              {/* Mode selector */}
+              <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setImportMode('file')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${
+                    importMode === 'file'
+                      ? 'border-b-2 border-primary text-primary'
+                      : 'text-gray-500 dark:text-gray-400'
+                  }`}
+                >
+                  Upload File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImportMode('paste')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${
+                    importMode === 'paste'
+                      ? 'border-b-2 border-primary text-primary'
+                      : 'text-gray-500 dark:text-gray-400'
+                  }`}
+                >
+                  Dán Nội Dung
+                </button>
+              </div>
+
+              {/* File upload mode */}
+              {importMode === 'file' && (
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Chọn file CSV hoặc JSON
+                  </label>
+                  <input
+                    type="file"
+                    accept=".csv,.json"
+                    onChange={handleFileChange}
+                    className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white cursor-pointer"
+                    required={importMode === 'file'}
+                  />
+                  {importFile && (
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                      Đã chọn: {importFile.name}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Paste mode */}
+              {importMode === 'paste' && (
+                <textarea
+                  placeholder="Dán nội dung CSV hoặc JSON vào đây..."
+                  value={importFileContent}
+                  onChange={(e) => setImportFileContent(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+                  rows="10"
+                  required={importMode === 'paste'}
+                />
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg"
+                >
+                  Nhập
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowImportModal(false)
+                    setImportFile(null)
+                    setImportFileContent('')
+                  }}
+                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+                >
+                  Hủy
                 </button>
               </div>
             </form>

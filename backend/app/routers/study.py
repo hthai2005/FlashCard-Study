@@ -220,6 +220,14 @@ def get_study_progress(
         models.StudyRecord.total_reviews > 0
     ).scalar() or 0
     
+    # Count cards with correct answers (cards where correct_count > 0)
+    # This represents cards the user has answered correctly at least once
+    cards_correct_count = db.query(func.count(distinct(models.StudyRecord.flashcard_id))).filter(
+        models.StudyRecord.user_id == current_user.id,
+        models.StudyRecord.flashcard.has(models.Flashcard.set_id == set_id),
+        models.StudyRecord.correct_count > 0
+    ).scalar() or 0
+    
     # Get daily progress
     today = datetime.utcnow().date()
     today_sessions = db.query(models.StudySession).filter(
@@ -242,6 +250,7 @@ def get_study_progress(
         cards_to_review=cards_to_review,
         cards_mastered=mastered,
         cards_studied=cards_studied_count,
+        cards_correct=cards_correct_count,
         daily_goal=daily_goal,
         daily_progress=daily_progress,
         streak_days=streak_days

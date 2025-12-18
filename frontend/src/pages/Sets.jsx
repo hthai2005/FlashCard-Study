@@ -13,7 +13,10 @@ export default function Sets() {
   const [showImportModal, setShowImportModal] = useState(false)
   const [showAIModal, setShowAIModal] = useState(false)
   const [newSet, setNewSet] = useState({ title: '', description: '', is_public: false })
-  const [importData, setImportData] = useState({ set_id: null, file_content: '' })
+  const [importData, setImportData] = useState({ set_id: null, file_content: '', title: '', description: '', is_public: false })
+  const [importFile, setImportFile] = useState(null)
+  const [importMode, setImportMode] = useState('file') // 'file' or 'paste'
+  const [importToNewSet, setImportToNewSet] = useState(true) // true = tạo mới, false = import vào set có sẵn
   const [aiData, setAiData] = useState({ topic: '', number_of_cards: 10, difficulty: 'medium' })
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('last-studied')
@@ -33,6 +36,17 @@ export default function Sets() {
     }
   }, [user, authLoading, location.pathname]) // Add location.pathname to refresh when navigating
 
+  // Auto-refresh sets every 30 seconds to catch new sets from other users
+  useEffect(() => {
+    if (!user || authLoading || location.pathname !== '/sets') return
+
+    const interval = setInterval(() => {
+      fetchSets()
+    }, 30000) // Refresh every 30 seconds
+
+    return () => clearInterval(interval)
+  }, [user, authLoading, location.pathname])
+
   // Listen for study progress updates
   useEffect(() => {
     const handleStudyProgressUpdate = (event) => {
@@ -46,9 +60,10 @@ export default function Sets() {
               try {
                 const progressRes = await api.get(`/api/study/progress/${set.id}`).catch(() => null)
                 if (progressRes && progressRes.data) {
-                  const { total_cards, cards_studied } = progressRes.data
-                  if (total_cards > 0 && cards_studied !== undefined && cards_studied !== null) {
-                    mastery[set.id] = Math.round((cards_studied / total_cards) * 100)
+                  const { total_cards, cards_correct } = progressRes.data
+                  // Calculate mastery based on cards answered correctly / total cards
+                  if (total_cards > 0 && cards_correct !== undefined && cards_correct !== null) {
+                    mastery[set.id] = Math.round((cards_correct / total_cards) * 100)
                   } else {
                     mastery[set.id] = 0
                   }
@@ -93,12 +108,12 @@ export default function Sets() {
             // Fetch progress data
             const progressRes = await api.get(`/api/study/progress/${set.id}`).catch(() => null)
             if (progressRes && progressRes.data) {
-              const { total_cards, cards_studied } = progressRes.data
-              // Calculate mastery based on cards_studied (cards this user has studied) / total_cards
-              // Example: 1 card studied out of 10 = 10%
-              console.log(`Set ${set.id} (${set.title}): total_cards=${total_cards}, cards_studied=${cards_studied}`)
-              if (total_cards > 0 && cards_studied !== undefined && cards_studied !== null) {
-                mastery[set.id] = Math.round((cards_studied / total_cards) * 100)
+              const { total_cards, cards_correct } = progressRes.data
+              // Calculate mastery based on cards answered correctly / total cards
+              // Example: 1 card answered correctly out of 5 = 20%
+              console.log(`Set ${set.id} (${set.title}): total_cards=${total_cards}, cards_correct=${cards_correct}`)
+              if (total_cards > 0 && cards_correct !== undefined && cards_correct !== null) {
+                mastery[set.id] = Math.round((cards_correct / total_cards) * 100)
               } else {
                 mastery[set.id] = 0
               }
@@ -231,13 +246,13 @@ export default function Sets() {
           // Fetch progress data
           const progressRes = await api.get(`/api/study/progress/${set.id}`).catch(() => null)
           if (progressRes && progressRes.data) {
-            const { total_cards, cards_studied } = progressRes.data
-            // Calculate mastery based on cards_studied (cards this user has studied) / total_cards
-            // Example: 1 card studied out of 10 = 10%
-            if (total_cards > 0 && cards_studied !== undefined) {
-              mastery[set.id] = Math.round((cards_studied / total_cards) * 100)
+            const { total_cards, cards_correct } = progressRes.data
+            // Calculate mastery based on cards answered correctly / total cards
+            // Example: 1 card answered correctly out of 5 = 20%
+            if (total_cards > 0 && cards_correct !== undefined && cards_correct !== null) {
+              mastery[set.id] = Math.round((cards_correct / total_cards) * 100)
             } else {
-              // Deck exists but has no cards yet or user hasn't studied any - show 0%
+              // Deck exists but has no cards yet or user hasn't answered any correctly - show 0%
               mastery[set.id] = 0
             }
           } else {
@@ -337,18 +352,102 @@ export default function Sets() {
 
   const handleFileImport = async (e) => {
     e.preventDefault()
-    if (!importData.set_id) {
-      toast.error('Vui lòng chọn một bộ thẻ')
-      return
+    
+    // Validate
+    if (importToNewSet) {
+      if (!importData.title.trim()) {
+        toast.error('Vui lòng nhập tên bộ thẻ')
+        return
+      }
+    } else {
+      if (!importData.set_id) {
+        toast.error('Vui lòng chọn một bộ thẻ')
+        return
+      }
     }
+    
     try {
-      await api.post('/api/ai/import', importData)
-      toast.success('Đã nhập flashcard thành công!')
+      if (importMode === 'file' && importFile) {
+        // Upload file
+        const formData = new FormData()
+        formData.append('file', importFile)
+        
+        if (importToNewSet) {
+          formData.append('title', importData.title)
+          formData.append('description', importData.description || '')
+          formData.append('is_public', importData.is_public ? 'true' : 'false')
+        } else {
+          formData.append('set_id', importData.set_id.toString())
+        }
+        
+        const response = await api.post('/api/ai/import/file', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+        toast.success(`Đã nhập ${response.data.count} flashcard thành công!`)
+        
+        // If created new set, navigate to it
+        if (importToNewSet && response.data.set_id) {
+          setShowImportModal(false)
+          setImportData({ set_id: null, file_content: '', title: '', description: '', is_public: false })
+          setImportFile(null)
+          setImportToNewSet(true)
+          // Navigate to the new set
+          navigate(`/sets/${response.data.set_id}`)
+          return
+        }
+      } else if (importMode === 'paste' && importData.file_content) {
+        // Paste content
+        const payload = importToNewSet ? {
+          title: importData.title,
+          description: importData.description || '',
+          is_public: importData.is_public,
+          file_content: importData.file_content
+        } : {
+          set_id: importData.set_id,
+          file_content: importData.file_content
+        }
+        
+        const response = await api.post('/api/ai/import', payload)
+        toast.success(`Đã nhập ${response.data.count} flashcard thành công!`)
+        
+        // If created new set, navigate to it
+        if (importToNewSet && response.data.set_id) {
+          setShowImportModal(false)
+          setImportData({ set_id: null, file_content: '', title: '', description: '', is_public: false })
+          setImportFile(null)
+          setImportToNewSet(true)
+          // Navigate to the new set
+          navigate(`/sets/${response.data.set_id}`)
+          return
+        }
+      } else {
+        toast.error('Vui lòng chọn file hoặc dán nội dung')
+        return
+      }
+      
+      // If importing to existing set, just refresh
       setShowImportModal(false)
-      setImportData({ set_id: null, file_content: '' })
+      setImportData({ set_id: null, file_content: '', title: '', description: '', is_public: false })
+      setImportFile(null)
+      setImportToNewSet(true)
       fetchSets()
     } catch (error) {
-      toast.error('Không thể nhập flashcard')
+      const errorMessage = error.response?.data?.detail || 'Không thể nhập flashcard'
+      toast.error(errorMessage)
+    }
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      const extension = file.name.split('.').pop().toLowerCase()
+      if (extension !== 'csv' && extension !== 'json') {
+        toast.error('Chỉ chấp nhận file CSV hoặc JSON')
+        return
+      }
+      setImportFile(file)
     }
   }
 
@@ -388,35 +487,154 @@ export default function Sets() {
     return 'bg-red-500'
   }
 
-  const filteredSets = sets.filter(set =>
+  // Separate sets into "My Sets" and "Other Users' Sets"
+  const mySets = sets.filter(set => user && set.owner_id === user.id)
+  const otherSets = sets.filter(set => user && set.owner_id !== user.id)
+
+  // Filter by search query
+  const filteredMySets = mySets.filter(set =>
+    set.title.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+  const filteredOtherSets = otherSets.filter(set =>
     set.title.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  let sortedSets = [...filteredSets]
-  if (sortBy === 'alphabetical') {
-    sortedSets.sort((a, b) => a.title.localeCompare(b.title))
-  } else if (sortBy === 'oldest') {
-    sortedSets.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-  } else {
-    // Sort by last studied: decks with study history first (most recent first), then decks never studied
-    sortedSets.sort((a, b) => {
-      const aLastStudied = lastStudiedData[a.id]
-      const bLastStudied = lastStudiedData[b.id]
-      
-      // If both have been studied, sort by most recent first
-      if (aLastStudied && bLastStudied) {
-        return bLastStudied - aLastStudied
-      }
-      // If only one has been studied, put it first
-      if (aLastStudied && !bLastStudied) {
-        return -1
-      }
-      if (!aLastStudied && bLastStudied) {
-        return 1
-      }
-      // If neither has been studied, sort by created_at (newest first)
-      return new Date(b.created_at) - new Date(a.created_at)
-    })
+  // Sort function
+  const sortSets = (setsToSort) => {
+    let sorted = [...setsToSort]
+    if (sortBy === 'alphabetical') {
+      sorted.sort((a, b) => a.title.localeCompare(b.title))
+    } else if (sortBy === 'oldest') {
+      sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    } else {
+      // Sort by last studied
+      sorted.sort((a, b) => {
+        const aLastStudied = lastStudiedData[a.id]
+        const bLastStudied = lastStudiedData[b.id]
+        
+        if (aLastStudied && bLastStudied) {
+          return bLastStudied - aLastStudied
+        }
+        if (aLastStudied && !bLastStudied) {
+          return -1
+        }
+        if (!aLastStudied && bLastStudied) {
+          return 1
+        }
+        return new Date(b.created_at) - new Date(a.created_at)
+      })
+    }
+    return sorted
+  }
+
+  const sortedMySets = sortSets(filteredMySets)
+  const sortedOtherSets = sortSets(filteredOtherSets)
+
+  // Render set card component
+  const renderSetCard = (set) => {
+    const cardCount = cardCounts[set.id] || 0
+    const mastery = typeof masteryData[set.id] === 'number' ? masteryData[set.id] : 0
+    const masteryColor = getMasteryColor(mastery)
+    const isOwner = user && set.owner_id === user.id
+    
+    return (
+      <div
+        key={set.id}
+        className="flex flex-col gap-4 p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-lg hover:border-primary/50 dark:hover:border-primary/50 transition-all group"
+      >
+        <div className="w-full bg-gradient-to-br from-primary-400 via-purple-500 to-pink-500 aspect-video rounded-lg relative">
+        </div>
+        <div className="flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-slate-900 dark:text-white text-base font-bold flex-1">
+              {set.title}
+            </p>
+            {!isOwner && set.is_public && (
+              <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
+                Công khai
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-slate-500 dark:text-slate-400 text-sm">
+              {cardCount} Thẻ
+            </p>
+            {!isOwner && set.owner_username && (
+              <>
+                <span className="text-slate-400 dark:text-slate-600">•</span>
+                <div className="flex items-center gap-1.5">
+                  {set.owner_avatar_url ? (
+                    <img
+                      src={set.owner_avatar_url.startsWith('http') ? set.owner_avatar_url : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${set.owner_avatar_url}`}
+                      alt={set.owner_username}
+                      className="w-4 h-4 rounded-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                        e.target.nextElementSibling.style.display = 'flex'
+                      }}
+                    />
+                  ) : null}
+                  <div 
+                    className={`w-4 h-4 rounded-full bg-gradient-to-br from-primary-400 to-purple-500 flex items-center justify-center text-white text-[10px] font-semibold ${set.owner_avatar_url ? 'hidden' : ''}`}
+                    style={{ display: set.owner_avatar_url ? 'none' : 'flex' }}
+                  >
+                    {set.owner_username.charAt(0).toUpperCase()}
+                  </div>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">
+                    Bởi {set.owner_username}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
+            <span>Thành Thạo</span>
+            <span>{mastery}%</span>
+          </div>
+          <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
+            <div
+              className={`${masteryColor} h-1.5 rounded-full transition-all`}
+              style={{ width: `${Math.max(0, Math.min(100, mastery))}%` }}
+            ></div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 mt-2">
+          <button
+            onClick={() => navigate(`/sets/${set.id}`)}
+            className="flex items-center justify-center gap-2 h-10 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            <span className="material-symbols-outlined text-base">visibility</span>
+            <span>Xem</span>
+          </button>
+          <button
+            onClick={() => navigate(`/study/${set.id}`)}
+            className="flex flex-1 items-center justify-center gap-2 h-10 px-4 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors"
+          >
+            <span className="material-symbols-outlined">style</span>
+            <span>Học</span>
+          </button>
+          {isOwner ? (
+            <button
+              onClick={() => handleDeleteSet(set.id)}
+              className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+            >
+              <span className="material-symbols-outlined">more_vert</span>
+            </button>
+          ) : (
+            set.is_public && (
+              <ReportButton
+                itemType="deck"
+                itemId={set.id}
+                ownerId={set.owner_id}
+                itemTitle={set.title}
+              />
+            )
+          )}
+        </div>
+      </div>
+    )
   }
 
   if (authLoading || (user && loading)) {
@@ -439,14 +657,23 @@ export default function Sets() {
             <>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <h1 className="text-slate-900 dark:text-white text-4xl font-black tracking-[-0.033em]">
-                  Bộ Thẻ Của Tôi
+                  Bộ Thẻ
                 </h1>
-                <Link
-                  to="/sets/create"
-                  className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors"
-                >
-                  <span className="truncate">Tạo Bộ Thẻ Mới</span>
-                </Link>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowImportModal(true)}
+                    className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-green-600 text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-green-700 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base mr-1">upload_file</span>
+                    <span className="truncate">Nhập Flashcard</span>
+                  </button>
+                  <Link
+                    to="/sets/create"
+                    className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors"
+                  >
+                    <span className="truncate">Tạo Bộ Thẻ Mới</span>
+                  </Link>
+                </div>
               </div>
 
               <div className="flex flex-col md:flex-row gap-4">
@@ -458,7 +685,7 @@ export default function Sets() {
                       </div>
                       <input
                         className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-full placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 text-base font-normal"
-                        placeholder="Tìm kiếm bộ thẻ của tôi..."
+                        placeholder="Tìm kiếm bộ thẻ..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
@@ -503,10 +730,19 @@ export default function Sets() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {sortedSets.length === 0 ? (
-                  <div className="col-span-full text-center py-12">
-                    <p className="text-gray-500 dark:text-gray-400 mb-4">Không tìm thấy bộ thẻ nào</p>
+              {/* My Sets Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    Bộ Thẻ Của Tôi
+                  </h2>
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                    {sortedMySets.length} bộ thẻ
+                  </span>
+                </div>
+                {sortedMySets.length === 0 ? (
+                  <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">Bạn chưa có bộ thẻ nào</p>
                     <Link
                       to="/sets/create"
                       className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
@@ -516,112 +752,32 @@ export default function Sets() {
                     </Link>
                   </div>
                 ) : (
-                  sortedSets.map((set) => {
-                    const cardCount = cardCounts[set.id] || 0
-                    // Ensure mastery is always a number (0-100), default to 0 if not set
-                    const mastery = typeof masteryData[set.id] === 'number' ? masteryData[set.id] : 0
-                    const masteryColor = getMasteryColor(mastery)
-                    const isOwner = user && set.owner_id === user.id
-                    
-                    return (
-                      <div
-                        key={set.id}
-                        className="flex flex-col gap-4 p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-lg hover:border-primary/50 dark:hover:border-primary/50 transition-all group"
-                      >
-                        <div className="w-full bg-gradient-to-br from-primary-400 via-purple-500 to-pink-500 aspect-video rounded-lg relative">
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-slate-900 dark:text-white text-base font-bold flex-1">
-                              {set.title}
-                            </p>
-                            {!isOwner && set.is_public && (
-                              <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
-                                Công khai
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            <p className="text-slate-500 dark:text-slate-400 text-sm">
-                              {cardCount} Thẻ
-                            </p>
-                            {!isOwner && set.owner_username && (
-                              <>
-                                <span className="text-slate-400 dark:text-slate-600">•</span>
-                                <div className="flex items-center gap-1.5">
-                                  {set.owner_avatar_url ? (
-                                    <img
-                                      src={set.owner_avatar_url.startsWith('http') ? set.owner_avatar_url : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${set.owner_avatar_url}`}
-                                      alt={set.owner_username}
-                                      className="w-4 h-4 rounded-full object-cover"
-                                      onError={(e) => {
-                                        e.target.style.display = 'none'
-                                        e.target.nextElementSibling.style.display = 'flex'
-                                      }}
-                                    />
-                                  ) : null}
-                                  <div 
-                                    className={`w-4 h-4 rounded-full bg-gradient-to-br from-primary-400 to-purple-500 flex items-center justify-center text-white text-[10px] font-semibold ${set.owner_avatar_url ? 'hidden' : ''}`}
-                                    style={{ display: set.owner_avatar_url ? 'none' : 'flex' }}
-                                  >
-                                    {set.owner_username.charAt(0).toUpperCase()}
-                                  </div>
-                                  <p className="text-slate-500 dark:text-slate-400 text-sm">
-                                    Bởi {set.owner_username}
-                                  </p>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
-                            <span>Thành Thạo</span>
-                            <span>{mastery}%</span>
-                          </div>
-                          <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
-                            <div
-                              className={`${masteryColor} h-1.5 rounded-full transition-all`}
-                              style={{ width: `${Math.max(0, Math.min(100, mastery))}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <button
-                            onClick={() => navigate(`/sets/${set.id}`)}
-                            className="flex items-center justify-center gap-2 h-10 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                          >
-                            <span className="material-symbols-outlined text-base">visibility</span>
-                            <span>Xem</span>
-                          </button>
-                          <button
-                            onClick={() => navigate(`/study/${set.id}`)}
-                            className="flex flex-1 items-center justify-center gap-2 h-10 px-4 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors"
-                          >
-                            <span className="material-symbols-outlined">style</span>
-                            <span>Học</span>
-                          </button>
-                          {isOwner ? (
-                            <button
-                              onClick={() => handleDeleteSet(set.id)}
-                              className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-                            >
-                              <span className="material-symbols-outlined">more_vert</span>
-                            </button>
-                          ) : (
-                            set.is_public && (
-                              <ReportButton
-                                itemType="deck"
-                                itemId={set.id}
-                                ownerId={set.owner_id}
-                                itemTitle={set.title}
-                              />
-                            )
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {sortedMySets.map((set) => renderSetCard(set))}
+                  </div>
+                )}
+              </div>
+
+              {/* Other Users' Sets Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    Bộ Thẻ Của Người Khác
+                  </h2>
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                    {sortedOtherSets.length} bộ thẻ công khai
+                  </span>
+                </div>
+                {sortedOtherSets.length === 0 ? (
+                  <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Chưa có bộ thẻ công khai nào từ người dùng khác
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {sortedOtherSets.map((set) => renderSetCard(set))}
+                  </div>
                 )}
               </div>
             </>
@@ -683,28 +839,172 @@ export default function Sets() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full">
             <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Nhập Flashcard</h2>
-            <form onSubmit={handleFileImport} className="space-y-4">
-              <select
-                value={importData.set_id || ''}
-                onChange={(e) => setImportData({ ...importData, set_id: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
-                required
-              >
-                <option value="">Chọn một bộ thẻ</option>
-                {sets.map((set) => (
-                  <option key={set.id} value={set.id}>
-                    {set.title}
-                  </option>
-                ))}
-              </select>
-              <textarea
-                placeholder="Dán nội dung CSV hoặc JSON vào đây..."
-                value={importData.file_content}
-                onChange={(e) => setImportData({ ...importData, file_content: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
-                rows="10"
-                required
-              />
+            {sets.length === 0 ? (
+              <div className="space-y-4">
+                <p className="text-gray-600 dark:text-gray-400">
+                  Bạn chưa có bộ thẻ nào. Vui lòng tạo bộ thẻ trước khi nhập flashcard.
+                </p>
+                <div className="flex gap-2">
+                  <Link
+                    to="/sets/create"
+                    onClick={() => setShowImportModal(false)}
+                    className="flex-1 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-center"
+                  >
+                    Tạo Bộ Thẻ Mới
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setShowImportModal(false)}
+                    className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleFileImport} className="space-y-4">
+                {/* Import mode: New set or Existing set */}
+                <div className="flex gap-4 border-b border-gray-200 dark:border-gray-700 pb-3">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="importTo"
+                      checked={importToNewSet}
+                      onChange={() => setImportToNewSet(true)}
+                      className="mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Tạo Bộ Thẻ Mới</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="importTo"
+                      checked={!importToNewSet}
+                      onChange={() => setImportToNewSet(false)}
+                      className="mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Import Vào Bộ Thẻ Có Sẵn</span>
+                  </label>
+                </div>
+
+                {/* New Set Form */}
+                {importToNewSet ? (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Tên Bộ Thẻ <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={importData.title}
+                        onChange={(e) => setImportData({ ...importData, title: e.target.value })}
+                        placeholder="Nhập tên bộ thẻ..."
+                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Mô Tả
+                      </label>
+                      <textarea
+                        value={importData.description}
+                        onChange={(e) => setImportData({ ...importData, description: e.target.value })}
+                        placeholder="Nhập mô tả (tùy chọn)..."
+                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        rows="2"
+                      />
+                    </div>
+                    <label className="flex items-center text-gray-900 dark:text-white">
+                      <input
+                        type="checkbox"
+                        checked={importData.is_public}
+                        onChange={(e) => setImportData({ ...importData, is_public: e.target.checked })}
+                        className="mr-2"
+                      />
+                      <span className="text-sm">Công Khai (mọi người đều thấy)</span>
+                    </label>
+                  </>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Chọn bộ thẻ <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={importData.set_id || ''}
+                      onChange={(e) => setImportData({ ...importData, set_id: parseInt(e.target.value) })}
+                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      required={!importToNewSet}
+                    >
+                      <option value="">-- Chọn một bộ thẻ --</option>
+                      {sets.map((set) => (
+                        <option key={set.id} value={set.id}>
+                          {set.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              
+              {/* Mode selector */}
+              <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setImportMode('file')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${
+                    importMode === 'file'
+                      ? 'border-b-2 border-primary text-primary'
+                      : 'text-gray-500 dark:text-gray-400'
+                  }`}
+                >
+                  Upload File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImportMode('paste')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${
+                    importMode === 'paste'
+                      ? 'border-b-2 border-primary text-primary'
+                      : 'text-gray-500 dark:text-gray-400'
+                  }`}
+                >
+                  Dán Nội Dung
+                </button>
+              </div>
+
+              {/* File upload mode */}
+              {importMode === 'file' && (
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Chọn file CSV hoặc JSON
+                  </label>
+                  <input
+                    type="file"
+                    accept=".csv,.json"
+                    onChange={handleFileChange}
+                    className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white cursor-pointer"
+                    required={importMode === 'file'}
+                  />
+                  {importFile && (
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                      Đã chọn: {importFile.name}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Paste mode */}
+              {importMode === 'paste' && (
+                <textarea
+                  placeholder="Dán nội dung CSV hoặc JSON vào đây..."
+                  value={importData.file_content}
+                  onChange={(e) => setImportData({ ...importData, file_content: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+                  rows="10"
+                  required={importMode === 'paste'}
+                />
+              )}
+
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -714,13 +1014,19 @@ export default function Sets() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowImportModal(false)}
+                  onClick={() => {
+                    setShowImportModal(false)
+                    setImportData({ set_id: null, file_content: '', title: '', description: '', is_public: false })
+                    setImportFile(null)
+                    setImportToNewSet(true)
+                  }}
                   className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
                 >
                   Hủy
                 </button>
               </div>
-            </form>
+              </form>
+            )}
           </div>
         </div>
       )}

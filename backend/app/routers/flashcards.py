@@ -17,8 +17,15 @@ def create_flashcard_set(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    # If user is admin, set status to 'approved', otherwise 'pending'
-    status = 'approved' if current_user.is_admin else 'pending'
+    # Logic: 
+    # - Private sets (is_public=False): Always approved (no need for admin review)
+    # - Public sets (is_public=True): Approved if admin, otherwise pending (needs admin review)
+    if set_data.is_public:
+        # Public set: needs admin approval unless user is admin
+        status = 'approved' if current_user.is_admin else 'pending'
+    else:
+        # Private set: always approved (no review needed)
+        status = 'approved'
     
     db_set = models.FlashcardSet(
         **set_data.dict(),
@@ -45,26 +52,23 @@ def get_flashcard_sets(
 ):
     """
     Get flashcard sets for "My Decks" page:
-    - All sets owned by current user (regardless of is_public status)
-    - All public sets from other users (is_public = True)
-    - Only approved sets (status = 'approved')
+    - All sets owned by current user (regardless of is_public status or status)
+    - All public sets from other users (is_public = True) that are approved
     """
     query = db.query(models.FlashcardSet).options(joinedload(models.FlashcardSet.owner))
     
-    # Get user's own sets OR public sets from other users
-    # All sets must be approved
+    # Get user's own sets (any status) OR public approved sets from other users
     sets = query.filter(
         or_(
-            # User's own sets (can be public or private)
+            # User's own sets (can be public or private, any status)
             models.FlashcardSet.owner_id == current_user.id,
-            # Public sets from other users
+            # Public sets from other users (must be approved)
             and_(
                 models.FlashcardSet.is_public == True,
-                models.FlashcardSet.owner_id != current_user.id
+                models.FlashcardSet.owner_id != current_user.id,
+                models.FlashcardSet.status == 'approved'
             )
-        ),
-        # Only show approved sets
-        models.FlashcardSet.status == 'approved'
+        )
     ).offset(skip).limit(limit).all()
     
     # Add username and avatar_url to each set
