@@ -131,7 +131,6 @@ class StudyProgress(BaseModel):
     cards_to_review: int
     cards_mastered: int
     cards_studied: int  # Number of unique cards studied by this user
-    cards_correct: int  # Number of unique cards answered correctly at least once
     daily_goal: int
     daily_progress: int
     streak_days: int
@@ -166,11 +165,8 @@ class AIGenerateRequest(BaseModel):
     difficulty: str = "medium"  # easy, medium, hard
 
 class ImportRequest(BaseModel):
-    set_id: int = None  # Optional: if None, create new set
+    set_id: int
     file_content: str  # CSV or JSON content
-    title: str = None  # Required if set_id is None
-    description: str = None
-    is_public: bool = False
 
 # Auth schemas
 class LoginRequest(BaseModel):
@@ -223,14 +219,11 @@ class ReportReject(BaseModel):
 # Notification schemas
 class NotificationItem(BaseModel):
     id: int
-    type: str  # 'pending_set', 'pending_report'
+    type: str
     title: str
     message: str
-    item_id: int  # set_id or report_id
+    item_id: int
     created_at: datetime
-    
-    class Config:
-        from_attributes = True
 
 class NotificationResponse(BaseModel):
     pending_sets_count: int
@@ -238,10 +231,10 @@ class NotificationResponse(BaseModel):
     total_count: int
     notifications: List[NotificationItem]
 
-# User notification schemas
 class UserNotification(BaseModel):
     id: int
-    type: str  # 'set_pending', 'set_approved', 'set_rejected', etc.
+    user_id: int
+    type: str
     title: str
     message: str
     item_id: Optional[int] = None
