@@ -180,7 +180,7 @@ Frontend sẽ chạy tại `http://localhost:3000`
 - `PUT /api/study/sessions/{id}` - Hoàn thành session
 
 ### AI & Import
-- `POST /api/ai/generate` - Generate flashcards bằng AI
+- `POST /api/ai/generate` - Generate flashcards bằng AI (Trong giai đoạn phát triển)
 - `POST /api/ai/import` - Import từ file
 
 ### Leaderboard
